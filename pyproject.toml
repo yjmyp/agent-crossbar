@@ -1,0 +1,43 @@
+[project]
+name = "agent-crossbar"
+version = "0.1.0"
+description = "Local-first Agent runtime, trace, evaluation, and release desktop application."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "aiosqlite>=0.20.0",
+  "fastapi>=0.115.0",
+  "pydantic>=2.10.0",
+  "uvicorn[standard]>=0.32.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.0",
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "ruff>=0.8.0",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "backend" }
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
