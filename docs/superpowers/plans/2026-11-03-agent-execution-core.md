@@ -262,7 +262,7 @@ git commit -m "feat: execute bounded multi-turn tool loops"
 - Guarantees: authorization is sent only over an explicit HTTP(S) request
 - Guarantees: provider error bodies and credentials do not appear in runtime errors
 
-- [ ] **Step 1: Write failing request/response translation tests**
+- [x] **Step 1: Write failing request/response translation tests**
 
 ```python
 @pytest.mark.asyncio
@@ -301,20 +301,20 @@ async def test_provider_translates_tool_calls() -> None:
     assert response.tool_calls[0].arguments == {"expression": "2+2"}
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `uv run pytest backend/tests/runtime/test_openai_compat.py -v`
 
 Expected: collection failure because the provider module does not exist.
 
-- [ ] **Step 3: Implement the adapter**
+- [x] **Step 3: Implement the adapter**
 
 Send `POST {base_url}/chat/completions` with normalized messages and function
 definitions. Parse text, tool calls, usage, and finish reason. Reject malformed
 tool-call JSON with a stable provider error. Limit provider errors to status and a
 safe message; never include headers or API keys.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run: `uv run pytest backend/tests/runtime/test_openai_compat.py -v`
 
@@ -322,7 +322,7 @@ Run: `uv run ruff check backend`
 
 Expected: all adapter tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add pyproject.toml uv.lock backend/agent_crossbar/runtime/openai_compat.py backend/tests/runtime/test_openai_compat.py
