@@ -51,11 +51,15 @@ def start_run(client: TestClient, spec: dict[str, object]) -> dict[str, object]:
     return response.json()
 
 
-def read_sse(client: TestClient, run_id: str) -> list[dict[str, object]]:
+def read_sse(
+    client: TestClient,
+    run_id: str,
+    extra_headers: dict[str, str] | None = None,
+) -> list[dict[str, object]]:
     with client.stream(
         "GET",
         f"/v1/runs/{run_id}/events",
-        headers=_AUTHORIZATION,
+        headers={**_AUTHORIZATION, **(extra_headers or {})},
     ) as response:
         assert response.status_code == 200
         body = "".join(response.iter_text())
@@ -110,6 +114,37 @@ def test_run_streams_start_and_terminal_event(client: TestClient) -> None:
     assert events[0]["type"] == "run_started"
     assert events[-1]["type"] == "run_completed"
     assert [event["sequence"] for event in events] == list(range(1, len(events) + 1))
+
+
+def test_run_list_returns_newest_run_first(client: TestClient) -> None:
+    spec = create_spec(client)
+    first = start_run(client, spec)
+    second = start_run(client, spec)
+    wait_for_terminal(client, str(first["run_id"]))
+    wait_for_terminal(client, str(second["run_id"]))
+
+    response = client.get("/v1/runs", headers=_AUTHORIZATION)
+
+    assert response.status_code == 200
+    assert [run["run_id"] for run in response.json()] == [
+        second["run_id"],
+        first["run_id"],
+    ]
+
+
+def test_event_stream_resumes_after_last_event_id(client: TestClient) -> None:
+    spec = create_spec(client)
+    run = start_run(client, spec)
+    wait_for_terminal(client, str(run["run_id"]))
+
+    events = read_sse(
+        client,
+        str(run["run_id"]),
+        {"Last-Event-ID": "2"},
+    )
+
+    assert events
+    assert events[0]["sequence"] == 3
 
 
 def test_unknown_spec_returns_not_found(client: TestClient) -> None:

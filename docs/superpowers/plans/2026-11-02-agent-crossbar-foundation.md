@@ -44,7 +44,7 @@
 **Interfaces:**
 - Produces: `npm run dev`, `npm run build`, `npm run test`, `uv run pytest`
 
-- [ ] **Step 1: Write the failing backend package test**
+- [x] **Step 1: Write the failing backend package test**
 
 ```python
 from agent_crossbar import __version__
@@ -54,23 +54,23 @@ def test_package_exposes_version() -> None:
     assert __version__ == "0.1.0"
 ```
 
-- [ ] **Step 2: Run the test and verify it fails**
+- [x] **Step 2: Run the test and verify it fails**
 
 Run: `uv run pytest backend/tests/test_package.py -v`
 
 Expected: FAIL because `agent_crossbar` cannot be imported.
 
-- [ ] **Step 3: Create the package and configuration**
+- [x] **Step 3: Create the package and configuration**
 
 Create the package with `__version__ = "0.1.0"` and configure pytest `pythonpath = ["backend"]`.
 
-- [ ] **Step 4: Run the backend test**
+- [x] **Step 4: Run the backend test**
 
 Run: `uv run pytest backend/tests/test_package.py -v`
 
 Expected: 1 passed.
 
-- [ ] **Step 5: Write a failing frontend smoke test**
+- [x] **Step 5: Write a failing frontend smoke test**
 
 Create `src/App.test.tsx` and `src/test/setup.ts` to assert that the application renders the
 Agent Crossbar product name.
@@ -88,7 +88,7 @@ Run: `npm run test:run -- src/App.test.tsx`
 
 Expected: FAIL because the placeholder application does not contain the expected product identity.
 
-- [ ] **Step 6: Implement the minimal smoke-test target and verify the frontend baseline**
+- [x] **Step 6: Implement the minimal smoke-test target and verify the frontend baseline**
 
 Run: `npm install`
 
@@ -98,7 +98,7 @@ Run: `npm run build`
 
 Expected: the smoke test passes and the production build exits 0.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .
@@ -116,7 +116,7 @@ git commit -m "chore: establish application quality baseline"
 - Produces: `AgentSpec`, `ExecutionPolicy`, `AgentSpec.digest() -> str`
 - Produces: `AgentSpec.model_validate_json(source: str) -> AgentSpec`
 
-- [ ] **Step 1: Write failing validation and digest tests**
+- [x] **Step 1: Write failing validation and digest tests**
 
 ```python
 import pytest
@@ -136,23 +136,23 @@ def test_digest_is_stable_for_equivalent_specs() -> None:
     assert first.digest() == second.digest()
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `uv run pytest backend/tests/domain/test_spec.py -v`
 
 Expected: FAIL because the domain module does not exist.
 
-- [ ] **Step 3: Implement the Pydantic domain models**
+- [x] **Step 3: Implement the Pydantic domain models**
 
 Implement trimmed non-empty strings, semantic version validation, execution defaults, tool references, memory policy, collaboration policy, approval policy, output schema, and canonical SHA-256 digest.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest backend/tests/domain/test_spec.py -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/agent_crossbar/domain/spec.py backend/tests/domain/test_spec.py
@@ -173,7 +173,7 @@ git commit -m "feat: define portable agent specification"
 - Produces: `SpecStore.get(agent_id: str, version: str) -> AgentSpecRecord`
 - Produces: `SpecStore.list() -> list[AgentSpecRecord]`
 
-- [ ] **Step 1: Write failing persistence tests**
+- [x] **Step 1: Write failing persistence tests**
 
 ```python
 def test_created_spec_can_be_read_back(tmp_path) -> None:
@@ -192,23 +192,23 @@ def test_duplicate_agent_version_is_rejected(tmp_path) -> None:
         store.create(spec)
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `uv run pytest backend/tests/storage/test_specs.py -v`
 
 Expected: FAIL because storage modules do not exist.
 
-- [ ] **Step 3: Implement migrations and SpecStore**
+- [x] **Step 3: Implement migrations and SpecStore**
 
 Enable foreign keys and WAL mode. Create `agents` and `agent_specs` tables. Use parameterized SQL and immutable spec rows.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest backend/tests/storage/test_specs.py -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/agent_crossbar/storage backend/tests/storage
@@ -227,7 +227,7 @@ git commit -m "feat: persist versioned agent specifications"
 - Produces: `EventSequence.append(event: RuntimeEvent) -> RuntimeEvent`
 - Guarantees: per-run monotonic sequence number
 
-- [ ] **Step 1: Write failing event sequence test**
+- [x] **Step 1: Write failing event sequence test**
 
 ```python
 def test_event_sequence_is_monotonic() -> None:
@@ -237,23 +237,23 @@ def test_event_sequence_is_monotonic() -> None:
     assert (first.sequence, second.sequence) == (1, 2)
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `uv run pytest backend/tests/domain/test_events.py -v`
 
 Expected: FAIL because event types do not exist.
 
-- [ ] **Step 3: Implement normalized event models**
+- [x] **Step 3: Implement normalized event models**
 
 Define all event types, payload redaction references, UTC timestamps, sequence assignment, usage, cost, and correlation identifiers.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest backend/tests/domain/test_events.py -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/agent_crossbar/domain/events.py backend/tests/domain/test_events.py
@@ -272,7 +272,7 @@ git commit -m "feat: define normalized runtime events"
 - Produces: `NativeRuntime.execute(request: RuntimeRequest) -> AsyncIterator[RuntimeEvent]`
 - Guarantees: every run emits start and exactly one terminal success/failure/cancel event
 
-- [ ] **Step 1: Write failing terminal-state tests**
+- [x] **Step 1: Write failing terminal-state tests**
 
 ```python
 @pytest.mark.asyncio
@@ -291,23 +291,23 @@ async def test_provider_failure_marks_run_failed() -> None:
     assert events[-1].type == "run_failed"
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `uv run pytest backend/tests/runtime/test_native.py -v`
 
 Expected: FAIL because runtime contracts do not exist.
 
-- [ ] **Step 3: Implement the adapter protocol and native loop**
+- [x] **Step 3: Implement the adapter protocol and native loop**
 
 Implement max-turn enforcement, model response normalization, deterministic echo provider, failure propagation, cancellation event, usage accounting, and normalized event emission.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest backend/tests/runtime/test_native.py -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/agent_crossbar/runtime backend/tests/runtime
@@ -334,7 +334,7 @@ git commit -m "feat: execute agents through native runtime"
 - `GET /v1/runs/{run_id}`
 - `GET /v1/runs/{run_id}/events`
 
-- [ ] **Step 1: Write failing authentication and run tests**
+- [x] **Step 1: Write failing authentication and run tests**
 
 ```python
 def test_health_requires_launch_token(client) -> None:
@@ -349,23 +349,23 @@ def test_run_streams_start_and_terminal_event(authenticated_client) -> None:
     assert events[-1]["type"] == "run_completed"
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `uv run pytest backend/tests/api -v`
 
 Expected: FAIL because API modules do not exist.
 
-- [ ] **Step 3: Implement the API**
+- [x] **Step 3: Implement the API**
 
 Use bearer-token middleware, strict CORS for the Tauri origin, request IDs, structured errors, SSE streaming, and temporary SQLite test databases.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `uv run pytest backend/tests/api -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/agent_crossbar/api backend/tests/api
@@ -390,7 +390,7 @@ git commit -m "feat: expose authenticated local control API"
 - Produces: Tauri command `app_ready() -> AppConnection`
 - Guarantees: sidecar port and token are not injected into page query strings
 
-- [ ] **Step 1: Write failing bridge test**
+- [x] **Step 1: Write failing bridge test**
 
 ```typescript
 it('rejects a connection payload without a loopback URL', async () => {
@@ -400,17 +400,17 @@ it('rejects a connection payload without a loopback URL', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm run test -- --run src/lib/bridge.test.ts`
 
 Expected: FAIL because `createBridge` does not exist.
 
-- [ ] **Step 3: Implement shell and bridge**
+- [x] **Step 3: Implement shell and bridge**
 
 Launch the sidecar with a random token, capture the advertised health endpoint, supervise the process, terminate it on app exit, and implement an allowlisted Tauri capability set.
 
-- [ ] **Step 4: Run frontend tests and Tauri metadata checks**
+- [x] **Step 4: Run frontend tests and Tauri metadata checks**
 
 Run: `npm run test -- --run src/lib/bridge.test.ts`
 
@@ -418,7 +418,7 @@ Run: `npm run tauri info`
 
 Expected: tests pass and Tauri reports a valid environment.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src src-tauri
@@ -444,7 +444,7 @@ git commit -m "feat: host the control plane in a desktop shell"
 - Produces: route-ready application shell with persistent primary navigation
 - Guarantees: keyboard focus and compact-window behavior
 
-- [ ] **Step 1: Write failing shell tests**
+- [x] **Step 1: Write failing shell tests**
 
 ```tsx
 it('renders the active navigation item and command center heading', () => {
@@ -457,17 +457,17 @@ it('renders the active navigation item and command center heading', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `npm run test -- --run src/App.test.tsx`
 
 Expected: FAIL because the application shell does not exist.
 
-- [ ] **Step 3: Implement the shell and command center**
+- [x] **Step 3: Implement the shell and command center**
 
 Build the custom token system, sidebar, top bar, command-center status cards, action hierarchy, focus styles, responsive minimum size, and designed empty/loading/error states.
 
-- [ ] **Step 4: Run tests and production build**
+- [x] **Step 4: Run tests and production build**
 
 Run: `npm run test -- --run`
 
@@ -475,7 +475,7 @@ Run: `npm run build`
 
 Expected: tests pass and build exits 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src
@@ -498,7 +498,7 @@ git commit -m "feat: add premium desktop application shell"
 - Consumes: authenticated bridge and spec/run API
 - Produces: create spec, launch run, stream events, render terminal status
 
-- [ ] **Step 1: Write failing studio and trace tests**
+- [x] **Step 1: Write failing studio and trace tests**
 
 ```tsx
 it('disables launch when instructions are blank', async () => {
@@ -513,17 +513,17 @@ it('renders failed tools as failures rather than success', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `npm run test -- --run src/features/specs/AgentStudioPage.test.tsx src/components/trace/TraceTimeline.test.tsx`
 
 Expected: FAIL because the features do not exist.
 
-- [ ] **Step 3: Implement the complete vertical slice**
+- [x] **Step 3: Implement the complete vertical slice**
 
 Add forms with validation, save/run action, event subscription with reconnect and sequence de-duplication, trace grouping, cancellation, and run detail states.
 
-- [ ] **Step 4: Run tests and build**
+- [x] **Step 4: Run tests and build**
 
 Run: `npm run test -- --run`
 
@@ -531,7 +531,7 @@ Run: `npm run build`
 
 Expected: all tests pass and build exits 0.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src
@@ -548,11 +548,11 @@ git commit -m "feat: complete create run and inspect workflow"
 **Interfaces:**
 - Produces: one command that verifies formatting, lint, type-check, backend tests, frontend tests, build, and Tauri package
 
-- [ ] **Step 1: Write the verification script**
+- [x] **Step 1: Write the verification script**
 
 The script must fail immediately on any non-zero command and print the exact stage that failed.
 
-- [ ] **Step 2: Run backend verification**
+- [x] **Step 2: Run backend verification**
 
 Run: `uv run ruff check backend`
 
@@ -560,7 +560,7 @@ Run: `uv run pytest backend -v`
 
 Expected: zero lint errors and zero failed tests.
 
-- [ ] **Step 3: Run frontend verification**
+- [x] **Step 3: Run frontend verification**
 
 Run: `npm run lint`
 
@@ -572,17 +572,17 @@ Run: `npm run build`
 
 Expected: all commands exit 0.
 
-- [ ] **Step 4: Build the desktop application**
+- [x] **Step 4: Build the desktop application**
 
 Run: `npm run tauri build`
 
 Expected: a successful Windows bundle is produced.
 
-- [ ] **Step 5: Perform the documented desktop smoke test**
+- [x] **Step 5: Perform the documented desktop smoke test**
 
 Launch the installed app, create a spec, run it, inspect the trace, close and reopen the app, and confirm the spec and run remain.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts docs README.md

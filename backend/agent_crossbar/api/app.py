@@ -172,6 +172,10 @@ def create_app(settings: AppSettings) -> FastAPI:
         run_executor.submit(run, spec_record.spec)
         return _run_resource(run).model_dump(mode="json")
 
+    @app.get("/v1/runs")
+    async def list_runs() -> list[dict[str, object]]:
+        return [_run_resource(record).model_dump(mode="json") for record in run_store.list()]
+
     @app.get("/v1/runs/{run_id}")
     async def get_run(run_id: str) -> dict[str, object]:
         return _run_resource(run_store.get(run_id)).model_dump(mode="json")

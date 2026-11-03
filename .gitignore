@@ -20,5 +20,9 @@ src-tauri/gen/
 .tauri/
 test-results/
 playwright-report/
+.playwright-cli/
+output/
 *.log
+.build/
+src-tauri/binaries/
 

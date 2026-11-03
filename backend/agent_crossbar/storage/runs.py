@@ -96,6 +96,21 @@ class RunStore:
             raise RunNotFoundError(f"run {run_id} does not exist")
         return _run_from_row(row)
 
+    def list(self, *, limit: int = 100) -> list[RunRecord]:
+        if limit < 1 or limit > 500:
+            raise ValueError("limit must be between 1 and 500")
+        rows = self._database.connection.execute(
+            """
+            SELECT run_id, agent_id, spec_version, input_text, status, output, error_json,
+                   created_at, started_at, finished_at
+            FROM runs
+            ORDER BY created_at DESC, rowid DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+        return [_run_from_row(row) for row in rows]
+
     def mark_running(self, run_id: str) -> None:
         now = datetime.now(UTC).isoformat()
         with self._database.write_lock, self._database.connection:

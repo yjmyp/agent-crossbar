@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "sidecar:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-sidecar.ps1",
     "test": "vitest",
     "test:run": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint .",
+    "verify": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
     "tauri": "tauri"
   },
   "overrides": {

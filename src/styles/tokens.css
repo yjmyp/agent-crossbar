@@ -1,0 +1,38 @@
+:root {
+  color-scheme: dark;
+  --bg-canvas: #0a0c0f;
+  --bg-sidebar: #0d1014;
+  --bg-raised: #11151a;
+  --bg-panel: #12171d;
+  --bg-panel-strong: #161c23;
+  --bg-input: #0d1116;
+  --bg-hover: #1a2129;
+  --border-subtle: #222a33;
+  --border-default: #2b3540;
+  --border-strong: #3b4855;
+  --text-primary: #eef3f2;
+  --text-secondary: #aab5b8;
+  --text-tertiary: #77848b;
+  --accent: #79dec7;
+  --accent-strong: #a0f2df;
+  --accent-muted: rgb(121 222 199 / 12%);
+  --positive: #79d99b;
+  --positive-muted: rgb(121 217 155 / 12%);
+  --warning: #e8bd74;
+  --warning-muted: rgb(232 189 116 / 12%);
+  --danger: #f28b8b;
+  --danger-muted: rgb(242 139 139 / 12%);
+  --font-ui:
+    "Segoe UI Variable Text", "Segoe UI", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    "Segoe UI Variable Display", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-panel: 0 18px 50px rgb(0 0 0 / 22%);
+  --sidebar-width: 248px;
+  --topbar-height: 64px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
