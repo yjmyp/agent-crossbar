@@ -174,9 +174,11 @@ This slice includes:
 - structured tool arguments and results visible directly in run details;
 - packaged-sidecar proof of the complete tool-call loop.
 
-The following remain outside this slice:
+The following remained outside this execution-core slice at the time it was
+verified:
 
-- operating-system credential-vault management;
+- operating-system credential-vault management (implemented by the subsequent
+  secure-provider slice);
 - signed distribution and updates;
 - MCP and remote tool protocols;
 - RAG;

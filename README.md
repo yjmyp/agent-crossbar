@@ -12,7 +12,7 @@ The product and architecture specification is in
 
 ## Current capability
 
-Implemented and verified through the execution-core slice:
+Implemented and verified through the secure-provider slice:
 
 - Native Windows desktop shell with a React application surface.
 - Loopback-only FastAPI sidecar with a random per-launch bearer token.
@@ -24,15 +24,28 @@ Implemented and verified through the execution-core slice:
 - Policy-checked `calculator` and `text_stats` tools with visible tool failures.
 - Provider and tool selection in Agent Studio.
 - OpenAI Chat Completions compatible model profiles.
+- In-app model connection creation, replacement, testing, and removal.
+- API-key storage in Windows Credential Manager rather than application data.
+- Safe sidecar refresh without restarting the desktop application.
+- Explicit connection testing and a truthful offline fallback.
 - Agent Studio, Command Center, Run Center, Run Detail, and Trace Explorer.
 - NSIS installer for a per-user Windows installation.
 
 Two offline providers are always available: `local.echo` for a single response
 and `local.tool-demo` for a deterministic two-turn tool loop. `openai.default`
-becomes selectable only when its base URL, API key, and model are supplied
-through environment variables. This slice does not yet use an OS credential
-vault. MCP, RAG, evaluation, comparison, multi-agent collaboration, and
-additional runtime adapters remain future slices.
+becomes selectable after a user stores a base URL, API key, and model. The Tauri
+shell stores the credential in Windows Credential Manager and supplies it to
+the sidecar through its process environment; the key is not persisted in
+SQLite, AgentSpecs, traces, logs, or responses returned to the UI.
+
+MCP, RAG, evaluation and regression gates, run comparison, multi-agent
+collaboration, additional runtime adapters, signed distribution, automatic
+updates, and production telemetry remain future work. The current build is a
+verified engineering milestone, not a complete commercial product.
+
+See
+[`docs/verification/secure-provider-connections.md`](docs/verification/secure-provider-connections.md)
+for vault, redaction, sidecar-refresh, packaged-runtime, and desktop evidence.
 
 See
 [`docs/verification/execution-core.md`](docs/verification/execution-core.md)
@@ -60,7 +73,8 @@ Build the packaged sidecar and desktop installer:
 
 ```powershell
 npm run sidecar:build
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-sidecar.ps1
+npm run sidecar:smoke
+npm run provider:smoke
 npm run tauri build
 ```
 

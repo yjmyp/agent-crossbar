@@ -43,7 +43,7 @@
 - Produces: `async ProviderCatalog.test_openai_connection() -> None`
 - Guarantees: public profiles contain neither the key nor the raw provider exception
 
-- [ ] **Step 1: Write failing catalog tests**
+- [x] **Step 1: Write failing catalog tests**
 
 ```python
 def test_catalog_can_install_and_replace_openai_configuration() -> None:
@@ -86,13 +86,13 @@ def test_catalog_can_remove_openai_configuration() -> None:
         catalog.provider_for("openai.default")
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `.venv\Scripts\python.exe -m pytest backend/tests/runtime/test_catalog.py -v`
 
 Expected: collection failure because `OpenAIConnectionConfig` and the mutation methods do not exist.
 
-- [ ] **Step 3: Add failing connection-test tests**
+- [x] **Step 3: Add failing connection-test tests**
 
 ```python
 @pytest.mark.asyncio
@@ -126,7 +126,7 @@ async def test_connection_test_uses_the_configured_provider() -> None:
     await client.aclose()
 ```
 
-- [ ] **Step 4: Implement the catalog state machine**
+- [x] **Step 4: Implement the catalog state machine**
 
 Use a lock around the provider entry map because save, delete, list, and run
 selection can interleave. Build the OpenAI provider with a 20-second timeout.
@@ -137,7 +137,7 @@ connection could not be verified. Check the base URL, model name, API key,
 network access, and provider availability.")` without including exception
 text or upstream response content.
 
-- [ ] **Step 5: Run GREEN**
+- [x] **Step 5: Run GREEN**
 
 Run: `.venv\Scripts\python.exe -m pytest backend/tests/runtime/test_catalog.py backend/tests/runtime/test_openai_compat.py -v`
 
@@ -145,7 +145,7 @@ Run: `.venv\Scripts\ruff.exe check backend`
 
 Expected: all catalog/provider tests pass and Ruff reports no errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add backend/agent_crossbar/runtime/catalog.py backend/agent_crossbar/runtime/openai_compat.py backend/tests/runtime/test_catalog.py backend/tests/runtime/test_openai_compat.py
@@ -166,7 +166,7 @@ git commit -m "feat: support live OpenAI provider configuration"
 - Guarantees: every route requires the launch bearer token
 - Guarantees: responses contain only provider profiles or stable metadata
 
-- [ ] **Step 1: Write failing API tests**
+- [x] **Step 1: Write failing API tests**
 
 ```python
 def test_openai_configuration_can_be_set_tested_and_removed(client: TestClient) -> None:
@@ -214,13 +214,13 @@ def test_provider_configuration_rejects_unknown_fields(client: TestClient) -> No
     assert "must-not-leak" not in response.text
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `.venv\Scripts\python.exe -m pytest backend/tests/api/test_runs.py -v`
 
 Expected: routes return 404.
 
-- [ ] **Step 3: Implement strict request and test result models**
+- [x] **Step 3: Implement strict request and test result models**
 
 Use `ConfigDict(extra="forbid", frozen=True)`, bounded string lengths, and
 `SecretStr` for `api_key`. Configure CORS for `PUT` and `DELETE`. Return
@@ -228,7 +228,7 @@ Use `ConfigDict(extra="forbid", frozen=True)`, bounded string lengths, and
 details. The base API fixture must use a `ProviderCatalog` with an
 `httpx.MockTransport` that returns one valid text completion.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run: `.venv\Scripts\python.exe -m pytest backend/tests/api/test_runs.py -v`
 
@@ -236,7 +236,7 @@ Run: `.venv\Scripts\ruff.exe check backend`
 
 Expected: all API tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add backend/agent_crossbar/api/app.py backend/tests/api/test_runs.py
@@ -260,7 +260,7 @@ git commit -m "feat: expose authenticated provider configuration"
 - Credential service: `com.agentcrossbar.desktop.openai`
 - Credential account: `openai.default`
 
-- [ ] **Step 1: Add failing Rust contract tests**
+- [x] **Step 1: Add failing Rust contract tests**
 
 ```rust
 #[test]
@@ -282,13 +282,13 @@ fn summary_does_not_contain_the_api_key() {
 }
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"; cargo test --manifest-path src-tauri\Cargo.toml credentials`
 
 Expected: module and types are missing.
 
-- [ ] **Step 3: Implement validation, serialization, and keyring storage**
+- [x] **Step 3: Implement validation, serialization, and keyring storage**
 
 Add:
 
@@ -301,13 +301,13 @@ field lengths, and a nonblank key/model. Store a single serialized JSON value
 with `Entry::new(SERVICE, ACCOUNT)`. Treat `NoEntry` as `configured = false`.
 Never include the key or serialized credential in an error string or log.
 
-- [ ] **Step 4: Add a real Windows Credential Manager round-trip test**
+- [x] **Step 4: Add a real Windows Credential Manager round-trip test**
 
 Use a random account under the product's dedicated test service, write, read,
 delete, and delete again. This test must prove the native backend is active,
 not only the in-memory model.
 
-- [ ] **Step 5: Inject the stored credential into the sidecar**
+- [x] **Step 5: Inject the stored credential into the sidecar**
 
 Before spawning the sidecar, read the vault and append these environment
 variables through the shell command builder:
@@ -322,14 +322,14 @@ Do not place any value in command arguments. A missing vault entry leaves all
 three variables unset. A corrupt vault entry must produce a safe startup
 warning while preserving offline providers.
 
-- [ ] **Step 6: Register the three Tauri commands**
+- [x] **Step 6: Register the three Tauri commands**
 
 `save_provider_credential` accepts a camel-case object with `baseUrl`,
 `apiKey`, and `model`. `get_provider_credential` returns only
 `{ configured, baseUrl, model, storage }`. `delete_provider_credential`
 removes the credential and succeeds when it is already absent.
 
-- [ ] **Step 7: Run GREEN**
+- [x] **Step 7: Run GREEN**
 
 Run: `$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"; cargo fmt --manifest-path src-tauri\Cargo.toml`
 
@@ -339,7 +339,7 @@ Run: `$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"; cargo check --manifes
 
 Expected: all Rust tests and checks pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/src/credentials.rs src-tauri/src/lib.rs src-tauri/src/sidecar.rs
@@ -367,7 +367,7 @@ git commit -m "feat: store model credentials in the OS vault"
 - Consumes API routes from Task 2
 - Guarantees: secret input is cleared after save and never returned by vault lookup
 
-- [ ] **Step 1: Write failing bridge ordering and redaction tests**
+- [x] **Step 1: Write failing bridge ordering and redaction tests**
 
 ```typescript
 it("stores the secret before refreshing the active sidecar provider", async () => {
@@ -425,13 +425,13 @@ it("does not refresh the sidecar when vault storage fails", async () => {
 });
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `npm.cmd run test:run -- src/lib/bridge.test.ts`
 
 Expected: `createBridge` has no injected desktop adapter and the methods do not exist.
 
-- [ ] **Step 3: Write failing Registry UI tests**
+- [x] **Step 3: Write failing Registry UI tests**
 
 ```tsx
 it("saves an API key without rendering it after success", async () => {
@@ -456,7 +456,7 @@ it("saves an API key without rendering it after success", async () => {
 });
 ```
 
-- [ ] **Step 4: Implement the bridge with injectable Tauri invocation**
+- [x] **Step 4: Implement the bridge with injectable Tauri invocation**
 
 `createBridge(connection, desktop = { invoke })` performs vault save before
 the authenticated `PUT`, and vault delete before the authenticated `DELETE`.
@@ -465,7 +465,7 @@ If the sidecar refresh fails after a successful save, throw
 If vault delete succeeds but sidecar removal fails, use the matching stable
 message. Never include the key in errors.
 
-- [ ] **Step 5: Implement the Registry workspace**
+- [x] **Step 5: Implement the Registry workspace**
 
 Show model profiles and registered tools. For `openai.default`, provide
 base URL, model, masked API key, save, explicit connection test, and remove
@@ -473,12 +473,12 @@ with confirmation. Load the non-secret summary from the vault. Display the
 storage backend and truthful state transitions. Do not display a success state
 until both vault persistence and sidecar refresh complete.
 
-- [ ] **Step 6: Wire the real Registry route**
+- [x] **Step 6: Wire the real Registry route**
 
 Remove the Registry placeholder and its `Next` badge. Keep Compare and
 Evaluation as explicit future milestones.
 
-- [ ] **Step 7: Run GREEN**
+- [x] **Step 7: Run GREEN**
 
 Run: `npm.cmd run test:run -- src/lib/bridge.test.ts src/pages/RegistryPage.test.tsx src/App.test.tsx`
 
@@ -488,7 +488,7 @@ Run: `npm.cmd run lint`
 
 Expected: all focused checks pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```powershell
 git add src/lib/bridge.ts src/lib/bridge.test.ts src/test/fakeBridge.ts src/pages/RegistryPage.tsx src/pages/RegistryPage.test.tsx src/App.tsx src/components/layout/Sidebar.tsx src/styles/pages.css
@@ -506,14 +506,14 @@ git commit -m "feat: configure model connections from the desktop"
 - Produces: reproducible evidence for vault write/read/delete, API redaction,
   sidecar refresh, connection test, offline fallback, and packaged startup
 
-- [ ] **Step 1: Run the complete automated quality gate**
+- [x] **Step 1: Run the complete automated quality gate**
 
 Run: `npm.cmd run verify`
 
 Expected: TypeScript, ESLint, frontend tests, Vite build, Ruff, pytest, Rust
 format, and Rust check all pass.
 
-- [ ] **Step 2: Run a live desktop smoke test**
+- [x] **Step 2: Run a live desktop smoke test**
 
 Launch the Tauri desktop app. Save a provider configuration using a local
 credential, verify the Registry shows `Windows Credential Manager`, confirm the
@@ -525,12 +525,12 @@ field stays blank.
 Record exact screenshots, run IDs, timestamps, and sanitized command output in
 `docs/verification/secure-provider-connections.md`. Do not capture a real key.
 
-- [ ] **Step 3: Prove the secret is absent from persistent application data**
+- [x] **Step 3: Prove the secret is absent from persistent application data**
 
 Search the SQLite database, logs, frontend build, and repository diff for the
 synthetic test key. Record the exact commands and zero-match results.
 
-- [ ] **Step 4: Rebuild and smoke-test the packaged sidecar**
+- [x] **Step 4: Rebuild and smoke-test the packaged sidecar**
 
 Run: `npm.cmd run sidecar:build`
 
@@ -539,7 +539,7 @@ Run: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-sidecar.
 Expected: the packaged sidecar still completes the deterministic tool loop
 without a credential.
 
-- [ ] **Step 5: Update implementation status honestly**
+- [x] **Step 5: Update implementation status honestly**
 
 Mark OS credential storage and in-app provider configuration implemented only
 if every prior step passed. Keep MCP, RAG, evaluation, comparison, multi-agent,

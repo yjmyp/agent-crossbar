@@ -62,6 +62,9 @@ try {
     Invoke-Stage "Rust formatting" {
         & $cargo fmt --manifest-path src-tauri\Cargo.toml -- --check
     }
+    Invoke-Stage "Rust tests" {
+        & $cargo test --manifest-path src-tauri\Cargo.toml
+    }
     Invoke-Stage "Rust check" {
         & $cargo check --manifest-path src-tauri\Cargo.toml
     }

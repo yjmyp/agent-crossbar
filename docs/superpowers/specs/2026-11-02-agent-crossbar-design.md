@@ -16,18 +16,24 @@ and packaged runtime are implemented. The execution core now includes
 provider-neutral messages, bounded multi-turn tool calls, policy-checked
 `calculator` and `text_stats` tools, an OpenAI Chat Completions compatible
 provider, a deterministic offline tool demo, and provider/tool selection in the
-UI.
+UI. The Registry now supports creating, replacing, testing, and removing a
+model connection. API keys are stored in Windows Credential Manager and are
+injected into the sidecar through environment variables at launch or refresh;
+they are not stored in application data or returned to the frontend.
 
 The execution core has unit, API integration, frontend, full quality-gate, and
 packaged-sidecar evidence in
 [`../../verification/execution-core.md`](../../verification/execution-core.md).
-No real-model run is claimed because the required credentials were absent in
-the verification environment.
+The secure provider workflow has separate vault, redaction, packaged-sidecar,
+and real-desktop-webview evidence in
+[`../../verification/secure-provider-connections.md`](../../verification/secure-provider-connections.md).
+The automated provider checks use a synthetic key against a local
+OpenAI-compatible HTTP server. No external real-model run is claimed.
 
 The following architecture remains future work and must not be represented as
-complete: OS credential-vault storage, signed distribution and updates, MCP,
-RAG, evaluation and regression gates, cross-run comparison, multi-agent
-collaboration, and additional runtime adapters.
+complete: signed distribution and updates, MCP, RAG, evaluation and regression
+gates, cross-run comparison, multi-agent collaboration, and additional runtime
+adapters.
 
 ## 1. Product Goal
 

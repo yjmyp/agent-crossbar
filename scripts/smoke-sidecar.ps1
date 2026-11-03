@@ -9,6 +9,26 @@ $runtimeTemp = Join-Path $smokeRoot "runtime-temp"
 $binaryPath = Join-Path $projectRoot "src-tauri\binaries\agent-crossbar-sidecar-x86_64-pc-windows-msvc.exe"
 $python = Join-Path $projectRoot ".venv\Scripts\python.exe"
 
+function Get-Sha256 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $LiteralPath
+    )
+
+    $stream = [System.IO.File]::OpenRead($LiteralPath)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha256.ComputeHash($stream)
+        } finally {
+            $sha256.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+    return ([BitConverter]::ToString($bytes) -replace "-", "").ToUpperInvariant()
+}
+
 if (-not (Test-Path -LiteralPath $binaryPath)) {
     throw "Packaged sidecar is missing. Run npm run sidecar:build first."
 }
@@ -33,7 +53,7 @@ $previousTemp = $env:TEMP
 $previousTmp = $env:TMP
 $env:TEMP = $runtimeTemp
 $env:TMP = $runtimeTemp
-$packageSha256 = (Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash
+$packageSha256 = Get-Sha256 -LiteralPath $binaryPath
 
 $process = Start-Process `
     -FilePath $binaryPath `

@@ -4,6 +4,26 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $nsisTemp = Join-Path $projectRoot ".build\nsis-temp"
 $bundleRoot = Join-Path $projectRoot "src-tauri\target\release\bundle\nsis"
 
+function Get-Sha256 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $LiteralPath
+    )
+
+    $stream = [System.IO.File]::OpenRead($LiteralPath)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha256.ComputeHash($stream)
+        } finally {
+            $sha256.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+    return ([BitConverter]::ToString($bytes) -replace "-", "").ToUpperInvariant()
+}
+
 Push-Location $projectRoot
 try {
     New-Item -ItemType Directory -Force -Path $nsisTemp | Out-Null
@@ -44,7 +64,7 @@ try {
         sizeBytes = $installer.Length
         lastWriteTime = $installer.LastWriteTime
         signatureStatus = $signature.Status
-        sha256 = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash
+        sha256 = Get-Sha256 -LiteralPath $installer.FullName
     } | ConvertTo-Json -Depth 3
 }
 finally {
