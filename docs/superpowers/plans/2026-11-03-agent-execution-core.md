@@ -190,7 +190,7 @@ git commit -m "feat: add policy-checked safe tools"
 - Guarantees: cancellation is checked around provider and tool work
 - Guarantees: provider/tool failures produce explicit events
 
-- [ ] **Step 1: Write failing two-turn tool-loop tests**
+- [x] **Step 1: Write failing two-turn tool-loop tests**
 
 ```python
 @pytest.mark.asyncio
@@ -216,14 +216,14 @@ async def test_runtime_feeds_tool_result_back_to_model() -> None:
     assert events[-1].type == RuntimeEventType.RUN_COMPLETED
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `uv run pytest backend/tests/runtime/test_native.py -v`
 
 Expected: failure because the current provider accepts one input string and cannot
 produce tool calls.
 
-- [ ] **Step 3: Replace the single-call runtime with the bounded loop**
+- [x] **Step 3: Replace the single-call runtime with the bounded loop**
 
 Build the initial system/user messages, emit `model_started`, request the provider,
 emit `model_completed`, then either finalize text or execute all tool calls and emit
@@ -231,7 +231,7 @@ emit `model_completed`, then either finalize text or execute all tool calls and 
 Apply the AgentSpec execution timeout, provider retries, max turns, and cancellation
 at explicit boundaries. Never emit more than one terminal event.
 
-- [ ] **Step 4: Keep the deterministic echo path and run GREEN**
+- [x] **Step 4: Keep the deterministic echo path and run GREEN**
 
 Adapt `EchoProvider` to the new interface while preserving `Echo: {input}` output.
 
@@ -241,7 +241,7 @@ Run: `uv run ruff check backend`
 
 Expected: all runtime tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add backend/agent_crossbar/runtime/base.py backend/agent_crossbar/runtime/native.py backend/tests/runtime/test_native.py

@@ -21,6 +21,7 @@ from agent_crossbar.api.run_service import RunExecutor
 from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.spec import AgentSpec
 from agent_crossbar.runtime.native import EchoProvider, NativeRuntime
+from agent_crossbar.runtime.tools import build_default_tool_registry
 from agent_crossbar.storage.database import Database
 from agent_crossbar.storage.runs import (
     TERMINAL_RUN_STATUSES,
@@ -76,7 +77,10 @@ def create_app(settings: AppSettings) -> FastAPI:
     run_store = RunStore(database)
     run_executor = RunExecutor(
         run_store,
-        runtime_factory=lambda: NativeRuntime(provider=EchoProvider()),
+        runtime_factory=lambda: NativeRuntime(
+            provider=EchoProvider(),
+            tool_registry=build_default_tool_registry(),
+        ),
     )
 
     @asynccontextmanager

@@ -5,8 +5,10 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from agent_crossbar.domain.events import RuntimeEvent, TokenUsage
+from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.spec import AgentSpec
+from agent_crossbar.runtime.messages import ConversationMessage, ModelResponse
+from agent_crossbar.runtime.tools import ToolDefinition
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,20 +21,14 @@ class RuntimeRequest:
 
 @dataclass(frozen=True, slots=True)
 class ProviderRequest:
-    instructions: str
-    input: str
+    messages: tuple[ConversationMessage, ...]
+    tools: tuple[ToolDefinition, ...]
     model_profile: str
     turn: int
 
 
-@dataclass(frozen=True, slots=True)
-class ProviderResponse:
-    text: str
-    usage: TokenUsage = field(default_factory=TokenUsage)
-
-
 class ModelProvider(Protocol):
-    async def complete(self, request: ProviderRequest) -> ProviderResponse: ...
+    async def complete(self, request: ProviderRequest) -> ModelResponse: ...
 
 
 class RuntimeAdapter(Protocol):
