@@ -71,7 +71,7 @@ export function TraceTimeline({ events }: { events: RuntimeEvent[] }) {
                   </span>
                 ) : null}
               </div>
-              <EventPayload payload={event.payload} />
+              <EventPayload type={event.type} payload={event.payload} />
             </div>
           </li>
         );
@@ -84,18 +84,17 @@ function numericUsage(value: unknown): number {
   return typeof value === "number" ? value : 0;
 }
 
-function EventPayload({ payload }: { payload: Record<string, unknown> }) {
+function EventPayload({
+  type,
+  payload,
+}: {
+  type: string;
+  payload: Record<string, unknown>;
+}) {
   const entries = Object.entries(payload);
   if (entries.length === 0) return null;
 
-  const summary =
-    typeof payload.output === "string"
-      ? payload.output
-      : typeof payload.delta === "string"
-        ? payload.delta
-        : typeof payload.message === "string"
-          ? payload.message
-          : null;
+  const summary = eventPayloadSummary(type, payload);
 
   return (
     <>
@@ -106,4 +105,32 @@ function EventPayload({ payload }: { payload: Record<string, unknown> }) {
       </details>
     </>
   );
+}
+
+function eventPayloadSummary(
+  type: string,
+  payload: Record<string, unknown>,
+): string | null {
+  if (typeof payload.name === "string") {
+    if (type === "tool_proposed") return `${payload.name} requested`;
+    if (type === "tool_started") return `${payload.name} started`;
+    if (type === "tool_completed" && typeof payload.content === "string") {
+      return `${payload.name} → ${payload.content}`;
+    }
+  }
+  if (type === "tool_failed") {
+    if (typeof payload.message === "string") return payload.message;
+    if (
+      typeof payload.error === "object" &&
+      payload.error !== null &&
+      "message" in payload.error &&
+      typeof payload.error.message === "string"
+    ) {
+      return payload.error.message;
+    }
+  }
+  if (typeof payload.output === "string") return payload.output;
+  if (typeof payload.delta === "string") return payload.delta;
+  if (typeof payload.message === "string") return payload.message;
+  return null;
 }

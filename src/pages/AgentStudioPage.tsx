@@ -6,11 +6,18 @@ import {
   Braces,
   Check,
   CircleAlert,
+  Cpu,
   Database,
   ShieldCheck,
   Sparkles,
+  Wrench,
 } from "lucide-react";
-import type { AgentSpecRecord, Bridge } from "../lib/bridge";
+import type {
+  AgentSpecRecord,
+  Bridge,
+  ProviderProfile,
+  ToolDefinition,
+} from "../lib/bridge";
 import { errorMessage } from "../lib/errors";
 import { shortId } from "../lib/format";
 import { PageHeader } from "../components/layout/PageHeader";
@@ -37,6 +44,14 @@ export function AgentStudioPage({
   const [specs, setSpecs] = useState<AgentSpecRecord[]>([]);
   const [loadingSpecs, setLoadingSpecs] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [providers, setProviders] = useState<ProviderProfile[]>([]);
+  const [tools, setTools] = useState<ToolDefinition[]>([]);
+  const [selectedProviderId, setSelectedProviderId] = useState("");
+  const [selectedToolNames, setSelectedToolNames] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [loadingRuntime, setLoadingRuntime] = useState(true);
+  const [runtimeLoadError, setRuntimeLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -58,11 +73,40 @@ export function AgentStudioPage({
     };
   }, [bridge]);
 
+  useEffect(() => {
+    let current = true;
+    Promise.all([bridge.listProviders(), bridge.listTools()])
+      .then(([providerRecords, toolRecords]) => {
+        if (!current) return;
+        setProviders(providerRecords);
+        setTools(toolRecords);
+        const preferred =
+          providerRecords.find(
+            (provider) => provider.id === "local.echo" && provider.configured,
+          ) ?? providerRecords.find((provider) => provider.configured);
+        setSelectedProviderId((preferred ?? providerRecords[0])?.id ?? "");
+      })
+      .catch((reason: unknown) => {
+        if (current) setRuntimeLoadError(errorMessage(reason));
+      })
+      .finally(() => {
+        if (current) setLoadingRuntime(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [bridge]);
+
+  const selectedProvider = providers.find(
+    (provider) => provider.id === selectedProviderId,
+  );
+  const selectedTools = tools.filter((tool) => selectedToolNames.has(tool.name));
   const ready =
     form.name.trim().length > 0 &&
     form.version.trim().length > 0 &&
     form.instructions.trim().length > 0 &&
-    form.input.trim().length > 0;
+    form.input.trim().length > 0 &&
+    selectedProvider?.configured === true;
 
   async function saveAndRun(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +118,13 @@ export function AgentStudioPage({
         name: form.name.trim(),
         version: form.version.trim(),
         description: form.description.trim() || null,
+        model_profile: selectedProviderId,
         instructions: form.instructions.trim(),
+        tools: selectedTools.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          required: true,
+        })),
       });
       const run = await bridge.createRun(spec.agent_id, spec.spec.version, form.input.trim());
       navigate(`/runs/${run.run_id}`);
@@ -87,6 +137,30 @@ export function AgentStudioPage({
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
+
+  function toggleTool(name: string) {
+    setSelectedToolNames((current) => {
+      const next = new Set(current);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  }
+
+  const validationMessage = ready
+    ? "Ready to create a versioned run"
+    : loadingRuntime
+      ? "Loading runtime capabilities"
+      : runtimeLoadError
+        ? "Runtime configuration unavailable"
+        : !selectedProvider
+          ? "No model provider is available"
+          : !selectedProvider.configured
+            ? "Select a configured model provider"
+            : "Complete the required fields to continue";
 
   return (
     <div className="page page--studio">
@@ -154,6 +228,99 @@ export function AgentStudioPage({
                 maxLength={1_000}
               />
             </label>
+            <section className="runtime-binding field--full" aria-labelledby="runtime-binding-title">
+              <div className="runtime-binding__header">
+                <span className="editor-icon editor-icon--compact">
+                  <Cpu size={16} aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 id="runtime-binding-title">Runtime bindings</h3>
+                  <p>Pin the model and tool authority before the spec is sealed.</p>
+                </div>
+              </div>
+
+              {loadingRuntime ? (
+                <div className="runtime-notice" role="status">
+                  Reading local provider and tool capabilities…
+                </div>
+              ) : null}
+              {runtimeLoadError ? (
+                <div className="runtime-notice runtime-notice--danger" role="alert">
+                  <CircleAlert size={15} aria-hidden="true" />
+                  <span>{runtimeLoadError}</span>
+                </div>
+              ) : null}
+
+              {!loadingRuntime && !runtimeLoadError ? (
+                <>
+                  {providers.length > 0 ? (
+                    <div className="provider-binding">
+                      <label className="field" htmlFor="agent-provider">
+                        <span>Model provider</span>
+                        <select
+                          id="agent-provider"
+                          aria-label="Model provider"
+                          value={selectedProviderId}
+                          onChange={(event) => setSelectedProviderId(event.target.value)}
+                        >
+                          {providers.map((provider) => (
+                            <option value={provider.id} key={provider.id}>
+                              {provider.label} · {provider.id}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <ProviderStatus provider={selectedProvider} />
+                    </div>
+                  ) : (
+                    <div className="runtime-notice" role="status">
+                      No model providers were advertised by the local runtime.
+                    </div>
+                  )}
+
+                  <div className="tool-binding">
+                    <div className="tool-binding__heading">
+                      <span>
+                        <Wrench size={14} aria-hidden="true" />
+                        Registered tools
+                      </span>
+                      <small>{selectedTools.length} selected</small>
+                    </div>
+                    <p>
+                      Only checked tools become executable authority in this immutable
+                      spec.
+                    </p>
+                    {tools.length > 0 ? (
+                      <div className="tool-picker">
+                        {tools.map((tool) => (
+                          <label className="tool-choice" key={tool.name}>
+                            <input
+                              type="checkbox"
+                              aria-label={tool.name}
+                              checked={selectedToolNames.has(tool.name)}
+                              onChange={() => toggleTool(tool.name)}
+                            />
+                            <span className="tool-choice__content">
+                              <span>
+                                <strong>{tool.name}</strong>
+                                <small>{tool.description}</small>
+                              </span>
+                              <span className="tool-choice__meta">
+                                {tool.risk} · {tool.timeout_seconds}s
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="runtime-notice" role="status">
+                        No tools are registered. A text-only agent can still run.
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </section>
             <label className="field field--full" htmlFor="agent-instructions">
               <span>
                 Instructions
@@ -202,10 +369,15 @@ export function AgentStudioPage({
                   Ready to create a versioned run
                 </>
               ) : (
-                "Complete the required fields to continue"
+                validationMessage
               )}
             </div>
-            <Button tone="primary" type="submit" disabled={!ready} loading={submitting}>
+            <Button
+              tone="primary"
+              type="submit"
+              disabled={!ready || submitting}
+              loading={submitting}
+            >
               Save and run
               <ArrowRight size={15} aria-hidden="true" />
             </Button>
@@ -301,6 +473,45 @@ function ContractRow({
         <small>{label}</small>
         <strong>{value}</strong>
         <p>{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function ProviderStatus({ provider }: { provider?: ProviderProfile }) {
+  if (!provider) {
+    return (
+      <div className="provider-status provider-status--unavailable">
+        <strong>No provider selected</strong>
+        <small>Choose an advertised model provider before launch.</small>
+      </div>
+    );
+  }
+
+  if (provider.configured) {
+    return (
+      <div className="provider-status">
+        <span className="provider-status__signal" aria-hidden="true" />
+        <div>
+          <strong>{provider.model}</strong>
+          <small>{provider.provider_type} · configured</small>
+        </div>
+      </div>
+    );
+  }
+
+  const missing =
+    provider.configuration_error ??
+    (provider.missing_configuration.length > 0
+      ? `Missing ${provider.missing_configuration.join(", ")}`
+      : "Configuration is incomplete.");
+
+  return (
+    <div className="provider-status provider-status--unavailable">
+      <CircleAlert size={15} aria-hidden="true" />
+      <div>
+        <strong>Provider unavailable</strong>
+        <small>{missing}</small>
       </div>
     </div>
   );

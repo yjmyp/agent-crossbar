@@ -11,11 +11,37 @@ export type Health = {
   database: string;
 };
 
+export type ProviderProfile = {
+  id: string;
+  label: string;
+  provider_type: string;
+  model: string;
+  configured: boolean;
+  missing_configuration: string[];
+  configuration_error: string | null;
+};
+
+export type ToolDefinition = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+  risk: "low" | "medium" | "high";
+  timeout_seconds: number;
+};
+
+export type ToolReference = {
+  name: string;
+  description?: string;
+  required?: boolean;
+};
+
 export type AgentSpecInput = {
   name: string;
   version: string;
   description?: string | null;
+  model_profile?: string;
   instructions: string;
+  tools?: ToolReference[];
 };
 
 export type AgentSpecRecord = {
@@ -123,6 +149,8 @@ export function createBridge(connection: AppConnection) {
 
   return {
     health: () => request<Health>("/health"),
+    listProviders: () => request<ProviderProfile[]>("/v1/providers"),
+    listTools: () => request<ToolDefinition[]>("/v1/tools"),
     listSpecs: () => request<AgentSpecRecord[]>("/v1/specs"),
     listRuns: () => request<RunRecord[]>("/v1/runs"),
     createSpec: (spec: AgentSpecInput) =>
