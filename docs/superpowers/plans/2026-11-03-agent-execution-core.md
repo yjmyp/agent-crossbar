@@ -114,7 +114,7 @@ git commit -m "feat: define normalized tool-calling messages"
 - Guarantees: unregistered and disallowed tools fail before their executor runs
 - Guarantees: schema validation occurs before execution
 
-- [ ] **Step 1: Write failing policy and calculator tests**
+- [x] **Step 1: Write failing policy and calculator tests**
 
 ```python
 import pytest
@@ -143,13 +143,13 @@ async def test_tool_not_referenced_by_spec_is_rejected() -> None:
         )
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `uv run pytest backend/tests/runtime/test_tools.py -v`
 
 Expected: collection failure because the registry module does not exist.
 
-- [ ] **Step 3: Implement the registry and safe tools**
+- [x] **Step 3: Implement the registry and safe tools**
 
 Add `jsonschema>=4.23.0` to runtime dependencies. The calculator accepts only
 safe AST nodes, with a maximum expression length of 500 and a maximum absolute
@@ -157,7 +157,7 @@ result of `1e100`. The executor uses no `eval`. `text_stats` returns JSON with
 character, word, and line counts. Unknown names, wrong arguments, timeouts, and
 executor exceptions become stable `ToolExecutionError` codes.
 
-- [ ] **Step 4: Run GREEN and lint**
+- [x] **Step 4: Run GREEN and lint**
 
 Run: `uv sync`
 
@@ -167,7 +167,7 @@ Run: `uv run ruff check backend`
 
 Expected: all tests pass and Ruff reports no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add pyproject.toml uv.lock backend/agent_crossbar/runtime/tools.py backend/tests/runtime/test_tools.py
