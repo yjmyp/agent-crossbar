@@ -19,7 +19,20 @@ from pydantic import BaseModel, Field
 
 from agent_crossbar import __version__
 from agent_crossbar.api.auth import has_valid_bearer_token
+from agent_crossbar.api.compare import (
+    RunComparison,
+    RunsNotComparableError,
+    SameRunError,
+    build_run_comparison,
+)
+from agent_crossbar.api.evaluation_service import (
+    EvaluationExecutor,
+    InvalidEvaluationRequest,
+    batch_resource,
+    dataset_resource,
+)
 from agent_crossbar.api.run_service import RunExecutor
+from agent_crossbar.domain.evaluation import EvaluationDataset
 from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.spec import AgentSpec
 from agent_crossbar.runtime.catalog import (
@@ -31,6 +44,13 @@ from agent_crossbar.runtime.catalog import (
 from agent_crossbar.runtime.native import NativeRuntime
 from agent_crossbar.runtime.tools import build_default_tool_registry
 from agent_crossbar.storage.database import Database
+from agent_crossbar.storage.evaluations import (
+    DatasetInUseError,
+    DatasetNotFoundError,
+    DuplicateDatasetError,
+    EvaluationBatchNotFoundError,
+    EvaluationStore,
+)
 from agent_crossbar.storage.runs import (
     TERMINAL_RUN_STATUSES,
     RunNotFoundError,
@@ -63,6 +83,13 @@ class CreateRunRequest(BaseModel):
     input: str = Field(min_length=1, max_length=100_000)
 
 
+class CreateEvaluationBatchRequest(BaseModel):
+    dataset_id: str = Field(min_length=1, max_length=100)
+    agent_id: str = Field(min_length=1, max_length=100)
+    version: str = Field(min_length=1, max_length=80)
+    baseline_batch_id: str | None = Field(default=None, min_length=1, max_length=100)
+
+
 class RunResource(BaseModel):
     run_id: str
     agent_id: str
@@ -89,6 +116,7 @@ def create_app(
     database = Database(settings.database_path)
     spec_store = SpecStore(database)
     run_store = RunStore(database)
+    evaluation_store = EvaluationStore(database)
     run_executor = RunExecutor(
         run_store,
         runtime_factory=lambda spec: NativeRuntime(
@@ -96,10 +124,16 @@ def create_app(
             tool_registry=tool_registry,
         ),
     )
+    evaluation_executor = EvaluationExecutor(
+        evaluation_store=evaluation_store,
+        run_store=run_store,
+        run_executor=run_executor,
+    )
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
+        await evaluation_executor.shutdown()
         await run_executor.shutdown()
         database.close()
 
@@ -114,7 +148,9 @@ def create_app(
     app.state.database = database
     app.state.spec_store = spec_store
     app.state.run_store = run_store
+    app.state.evaluation_store = evaluation_store
     app.state.run_executor = run_executor
+    app.state.evaluation_executor = evaluation_executor
     app.state.provider_catalog = catalog
     app.state.tool_registry = tool_registry
     app.state.settings = settings
@@ -169,6 +205,69 @@ def create_app(
             "That agent version already exists. Create a new version instead.",
         )
 
+    @app.exception_handler(SameRunError)
+    async def handle_same_run(_: Request, __: SameRunError) -> JSONResponse:
+        return _error_response(
+            400,
+            "same_run",
+            "Choose two different runs before comparing evidence.",
+        )
+
+    @app.exception_handler(RunsNotComparableError)
+    async def handle_runs_not_comparable(
+        _: Request,
+        __: RunsNotComparableError,
+    ) -> JSONResponse:
+        return _error_response(
+            409,
+            "runs_not_terminal",
+            "Wait for both runs to reach a terminal state before comparing them.",
+        )
+
+    @app.exception_handler(DatasetNotFoundError)
+    async def handle_dataset_not_found(
+        _: Request,
+        __: DatasetNotFoundError,
+    ) -> JSONResponse:
+        return _error_response(404, "dataset_not_found", "The evaluation dataset was not found.")
+
+    @app.exception_handler(EvaluationBatchNotFoundError)
+    async def handle_evaluation_batch_not_found(
+        _: Request,
+        __: EvaluationBatchNotFoundError,
+    ) -> JSONResponse:
+        return _error_response(
+            404,
+            "evaluation_batch_not_found",
+            "The evaluation batch was not found.",
+        )
+
+    @app.exception_handler(DuplicateDatasetError)
+    async def handle_duplicate_dataset(
+        _: Request,
+        __: DuplicateDatasetError,
+    ) -> JSONResponse:
+        return _error_response(
+            409,
+            "duplicate_dataset",
+            "That dataset name and version already exist.",
+        )
+
+    @app.exception_handler(DatasetInUseError)
+    async def handle_dataset_in_use(_: Request, __: DatasetInUseError) -> JSONResponse:
+        return _error_response(
+            409,
+            "dataset_in_use",
+            "This dataset is referenced by an evaluation batch and cannot be deleted.",
+        )
+
+    @app.exception_handler(InvalidEvaluationRequest)
+    async def handle_invalid_evaluation_request(
+        _: Request,
+        error: InvalidEvaluationRequest,
+    ) -> JSONResponse:
+        return _error_response(422, "invalid_evaluation_request", str(error))
+
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation(
         _: Request,
@@ -219,6 +318,58 @@ def create_app(
     @app.get("/v1/tools")
     async def list_tools() -> list[dict[str, object]]:
         return [definition.model_dump(mode="json") for definition in tool_registry.available()]
+
+    @app.post("/v1/evaluation/datasets", status_code=201)
+    async def create_evaluation_dataset(dataset: EvaluationDataset) -> dict[str, object]:
+        return dataset_resource(evaluation_store.create_dataset(dataset)).model_dump(mode="json")
+
+    @app.get("/v1/evaluation/datasets")
+    async def list_evaluation_datasets() -> list[dict[str, object]]:
+        return [
+            dataset_resource(record).model_dump(mode="json")
+            for record in evaluation_store.list_datasets()
+        ]
+
+    @app.get("/v1/evaluation/datasets/{dataset_id}")
+    async def get_evaluation_dataset(dataset_id: str) -> dict[str, object]:
+        return dataset_resource(evaluation_store.get_dataset(dataset_id)).model_dump(mode="json")
+
+    @app.delete("/v1/evaluation/datasets/{dataset_id}", status_code=204)
+    async def delete_evaluation_dataset(dataset_id: str) -> None:
+        evaluation_store.delete_dataset(dataset_id)
+
+    @app.post("/v1/evaluation/batches", status_code=202)
+    async def create_evaluation_batch(
+        payload: CreateEvaluationBatchRequest,
+    ) -> dict[str, object]:
+        dataset = evaluation_store.get_dataset(payload.dataset_id)
+        spec_record = spec_store.get(payload.agent_id, payload.version)
+        catalog.provider_for(spec_record.spec.model_profile)
+        if payload.baseline_batch_id is not None:
+            baseline = evaluation_store.get_batch(payload.baseline_batch_id)
+            if baseline.dataset_id != dataset.dataset_id:
+                raise InvalidEvaluationRequest(
+                    "The baseline batch must use the same evaluation dataset."
+                )
+        batch = evaluation_store.create_batch(
+            dataset_id=dataset.dataset_id,
+            agent_id=spec_record.agent_id,
+            spec_version=spec_record.spec.version,
+            baseline_batch_id=payload.baseline_batch_id,
+        )
+        evaluation_executor.submit(batch, spec_record.spec)
+        return batch_resource(batch).model_dump(mode="json")
+
+    @app.get("/v1/evaluation/batches")
+    async def list_evaluation_batches() -> list[dict[str, object]]:
+        return [
+            batch_resource(record).model_dump(mode="json")
+            for record in evaluation_store.list_batches()
+        ]
+
+    @app.get("/v1/evaluation/batches/{batch_id}")
+    async def get_evaluation_batch(batch_id: str) -> dict[str, object]:
+        return batch_resource(evaluation_store.get_batch(batch_id)).model_dump(mode="json")
 
     @app.post("/v1/runs", status_code=202)
     async def create_run(payload: CreateRunRequest) -> dict[str, object]:
@@ -273,6 +424,15 @@ def create_app(
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",
             },
+        )
+
+    @app.get("/v1/compare")
+    async def compare_runs(left_run_id: str, right_run_id: str) -> RunComparison:
+        return build_run_comparison(
+            left_run_id=left_run_id,
+            right_run_id=right_run_id,
+            run_store=run_store,
+            spec_store=spec_store,
         )
 
     return app
