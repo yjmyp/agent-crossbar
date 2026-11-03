@@ -184,7 +184,11 @@ def test_provider_and_tool_catalog_are_publicly_described_without_secrets(
     assert providers_response.status_code == 200
     assert tools_response.status_code == 200
     providers = providers_response.json()
-    assert {profile["id"] for profile in providers} == {"local.echo", "openai.default"}
+    assert {profile["id"] for profile in providers} == {
+        "local.echo",
+        "local.tool-demo",
+        "openai.default",
+    }
     assert next(
         profile for profile in providers if profile["id"] == "local.echo"
     )["configured"] is True
@@ -218,3 +222,38 @@ def test_unconfigured_provider_is_rejected_before_a_run_is_created(
     assert run_response.status_code == 422
     assert run_response.json()["error"]["code"] == "provider_not_configured"
     assert client.get("/v1/runs", headers=_AUTHORIZATION).json() == []
+
+
+def test_tool_demo_persists_a_complete_tool_loop(client: TestClient) -> None:
+    payload = spec_payload() | {
+        "model_profile": "local.tool-demo",
+        "tools": [
+            {
+                "name": "calculator",
+                "description": "Evaluate a safe arithmetic expression.",
+            }
+        ],
+    }
+    response = client.post("/v1/specs", json=payload, headers=_AUTHORIZATION)
+    assert response.status_code == 201
+    spec = response.json()
+
+    run = start_run(client, spec)
+    terminal = wait_for_terminal(client, str(run["run_id"]))
+    events = read_sse(client, str(run["run_id"]))
+
+    assert terminal["status"] == "completed"
+    assert terminal["output"] == "The answer is 4."
+    assert [
+        event["type"]
+        for event in events
+        if event["type"]
+        in {"tool_proposed", "tool_started", "tool_completed", "run_completed"}
+    ] == [
+        "tool_proposed",
+        "tool_started",
+        "tool_completed",
+        "run_completed",
+    ]
+    completed = next(event for event in events if event["type"] == "tool_completed")
+    assert completed["payload"]["content"] == "4"

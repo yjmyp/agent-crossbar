@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pydantic import BaseModel, ConfigDict, Field
 
 from agent_crossbar.runtime.base import ModelProvider
-from agent_crossbar.runtime.native import EchoProvider
+from agent_crossbar.runtime.native import EchoProvider, ToolDemoProvider
 from agent_crossbar.runtime.openai_compat import OpenAICompatibleProvider
 
 _OPENAI_BASE_URL = "AGENT_CROSSBAR_OPENAI_BASE_URL"
@@ -58,7 +58,17 @@ class ProviderCatalog:
                     configured=True,
                 ),
                 provider=EchoProvider(),
-            )
+            ),
+            "local.tool-demo": _ProviderEntry(
+                profile=ProviderProfile(
+                    id="local.tool-demo",
+                    label="Offline tool demo",
+                    provider_type="deterministic_tool_loop",
+                    model="deterministic-tool-demo",
+                    configured=True,
+                ),
+                provider=ToolDemoProvider(),
+            ),
         }
 
         values = {name: environ.get(name, "").strip() for name in _OPENAI_REQUIRED_VARIABLES}

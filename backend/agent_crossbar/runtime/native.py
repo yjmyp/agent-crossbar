@@ -407,6 +407,49 @@ class EchoProvider:
         return ModelResponse(text=text, usage=usage)
 
 
+class ToolDemoProvider:
+    """Deterministic two-turn provider used to prove offline tool execution."""
+
+    async def complete(self, request: ProviderRequest) -> ModelResponse:
+        if not any(tool.name == "calculator" for tool in request.tools):
+            text = "The calculator tool is required for this offline demo."
+            return ModelResponse(
+                text=text,
+                usage=TokenUsage(
+                    input_tokens=len(request.messages),
+                    output_tokens=len(text.split()),
+                ),
+            )
+
+        tool_results = [
+            message.content for message in request.messages if message.role == "tool"
+        ]
+        if not tool_results:
+            return ModelResponse(
+                tool_calls=(
+                    ToolCall(
+                        id="call_tool_demo_calculator",
+                        name="calculator",
+                        arguments={"expression": "2+2"},
+                    ),
+                ),
+                usage=TokenUsage(input_tokens=len(request.messages)),
+                finish_reason="tool_calls",
+            )
+
+        if tool_results[-1] == "4":
+            text = "The answer is 4."
+        else:
+            text = f"The calculator returned: {tool_results[-1]}"
+        return ModelResponse(
+            text=text,
+            usage=TokenUsage(
+                input_tokens=len(request.messages),
+                output_tokens=len(text.split()),
+            ),
+        )
+
+
 async def _await_with_control(
     awaitable: Awaitable[_T],
     *,

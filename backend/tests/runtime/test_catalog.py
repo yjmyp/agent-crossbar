@@ -7,7 +7,7 @@ from agent_crossbar.runtime.catalog import (
     ProviderCatalog,
     ProviderConfigurationError,
 )
-from agent_crossbar.runtime.native import EchoProvider
+from agent_crossbar.runtime.native import EchoProvider, ToolDemoProvider
 from agent_crossbar.runtime.openai_compat import OpenAICompatibleProvider
 
 
@@ -27,6 +27,7 @@ def test_catalog_exposes_configuration_without_secret() -> None:
     assert "must-not-leak" not in json.dumps(payload)
     assert {profile.id for profile in catalog.list_public()} == {
         "local.echo",
+        "local.tool-demo",
         "openai.default",
     }
     openai_profile = next(
@@ -40,6 +41,7 @@ def test_catalog_selects_the_registered_provider() -> None:
     catalog = ProviderCatalog.from_environment(configured_environment())
 
     assert isinstance(catalog.provider_for("local.echo"), EchoProvider)
+    assert isinstance(catalog.provider_for("local.tool-demo"), ToolDemoProvider)
     assert isinstance(catalog.provider_for("openai.default"), OpenAICompatibleProvider)
 
 
