@@ -2,7 +2,16 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $python = Join-Path $projectRoot ".venv\Scripts\python.exe"
-$targetTriple = (& rustc --print host-tuple).Trim()
+$rustcCommand = Get-Command rustc -ErrorAction SilentlyContinue
+$rustc = if ($rustcCommand) {
+    $rustcCommand.Source
+} else {
+    Join-Path $env:USERPROFILE ".cargo\bin\rustc.exe"
+}
+if (-not (Test-Path -LiteralPath $rustc)) {
+    throw "rustc is missing. Install the Rust toolchain before building the sidecar."
+}
+$targetTriple = (& $rustc --print host-tuple).Trim()
 if ($LASTEXITCODE -ne 0) {
     throw "rustc failed while resolving the host target."
 }
