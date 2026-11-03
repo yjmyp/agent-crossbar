@@ -1,3 +1,4 @@
+mod credentials;
 mod logging;
 mod paths;
 mod sidecar;
@@ -11,6 +12,23 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 pub struct AppConnection {
     base_url: String,
     token: String,
+}
+
+#[tauri::command]
+fn get_provider_credential() -> Result<credentials::ProviderCredentialSummary, String> {
+    credentials::summary()
+}
+
+#[tauri::command]
+fn save_provider_credential(
+    input: credentials::ProviderCredentialInput,
+) -> Result<credentials::ProviderCredentialSummary, String> {
+    credentials::save(input)
+}
+
+#[tauri::command]
+fn delete_provider_credential() -> Result<(), String> {
+    credentials::delete()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -49,7 +67,12 @@ pub fn run() {
             app.manage(state);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![app_ready])
+        .invoke_handler(tauri::generate_handler![
+            app_ready,
+            get_provider_credential,
+            save_provider_credential,
+            delete_provider_credential
+        ])
         .build(tauri::generate_context!())
         .expect("error while building Agent Crossbar");
 

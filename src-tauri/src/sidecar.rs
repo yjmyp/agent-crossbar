@@ -16,7 +16,7 @@ use tauri_plugin_shell::{
 use tokio::sync::watch;
 use uuid::Uuid;
 
-use crate::{AppConnection, paths};
+use crate::{AppConnection, credentials, paths};
 
 #[derive(Clone, Debug, Default)]
 pub struct ServiceSnapshot {
@@ -166,6 +166,7 @@ fn sidecar_command(
     std::fs::create_dir_all(&runtime_temp)
         .map_err(|error| format!("Could not prepare the local runtime directory: {error}"))?;
     let runtime_temp = runtime_temp.to_string_lossy().to_string();
+    let provider_environment = provider_environment_for_launch(credentials::sidecar_environment());
 
     #[cfg(debug_assertions)]
     {
@@ -183,26 +184,45 @@ fn sidecar_command(
                 python.display()
             ));
         }
-        return Ok(app
+        let mut command = app
             .shell()
             .command(python.to_string_lossy().to_string())
             .args(["-m", "agent_crossbar.sidecar"])
             .args(arguments)
             .env("TEMP", runtime_temp.clone())
-            .env("TMP", runtime_temp)
-            .current_dir(project_root));
+            .env("TMP", runtime_temp);
+        for (name, value) in provider_environment {
+            command = command.env(name, value);
+        }
+        return Ok(command.current_dir(project_root));
     }
 
     #[cfg(not(debug_assertions))]
     {
         let _ = database;
-        Ok(app
+        let mut command = app
             .shell()
             .sidecar("agent-crossbar-sidecar")
             .map_err(|error| format!("Could not resolve the packaged local service: {error}"))?
             .args(arguments)
             .env("TEMP", runtime_temp.clone())
-            .env("TMP", runtime_temp))
+            .env("TMP", runtime_temp);
+        for (name, value) in provider_environment {
+            command = command.env(name, value);
+        }
+        Ok(command)
+    }
+}
+
+fn provider_environment_for_launch(
+    environment: Result<Vec<(String, String)>, String>,
+) -> Vec<(String, String)> {
+    match environment {
+        Ok(environment) => environment,
+        Err(error) => {
+            log::warn!("Stored model connection is unavailable; starting in offline mode: {error}");
+            Vec::new()
+        }
     }
 }
 
@@ -231,4 +251,33 @@ struct Handshake {
     event: String,
     host: String,
     port: u16,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::provider_environment_for_launch;
+
+    #[test]
+    fn sidecar_launch_uses_valid_stored_provider_environment() {
+        let environment = provider_environment_for_launch(Ok(vec![(
+            "AGENT_CROSSBAR_OPENAI_MODEL".to_string(),
+            "model-a".to_string(),
+        )]));
+
+        assert_eq!(
+            environment,
+            vec![(
+                "AGENT_CROSSBAR_OPENAI_MODEL".to_string(),
+                "model-a".to_string()
+            )]
+        );
+    }
+
+    #[test]
+    fn sidecar_launch_keeps_offline_mode_when_stored_credentials_are_invalid() {
+        let environment =
+            provider_environment_for_launch(Err("stored connection is invalid".to_string()));
+
+        assert!(environment.is_empty());
+    }
 }
