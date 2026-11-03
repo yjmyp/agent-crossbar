@@ -1,8 +1,10 @@
 import json
+from asyncio import run
 from collections.abc import Iterator
 from pathlib import Path
 from time import monotonic, sleep
 
+import httpx
 import pytest
 from agent_crossbar.api.app import AppSettings, create_app
 from agent_crossbar.runtime.catalog import ProviderCatalog
@@ -11,17 +13,37 @@ from fastapi.testclient import TestClient
 _AUTHORIZATION = {"Authorization": "Bearer integration-token"}
 
 
+def successful_provider_response(request: httpx.Request) -> httpx.Response:
+    assert request.url.path == "/v1/chat/completions"
+    return httpx.Response(
+        200,
+        json={
+            "choices": [
+                {
+                    "message": {"content": "OK"},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 1},
+        },
+    )
+
+
 @pytest.fixture
 def client(tmp_path: Path) -> Iterator[TestClient]:
+    provider_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(successful_provider_response)
+    )
     app = create_app(
         AppSettings(
             database_path=tmp_path / "crossbar.db",
             launch_token="integration-token",
         ),
-        provider_catalog=ProviderCatalog.from_environment({}),
+        provider_catalog=ProviderCatalog.from_environment({}, http_client=provider_client),
     )
     with TestClient(app) as test_client:
         yield test_client
+    run(provider_client.aclose())
 
 
 def spec_payload() -> dict[str, object]:
@@ -257,3 +279,131 @@ def test_tool_demo_persists_a_complete_tool_loop(client: TestClient) -> None:
     ]
     completed = next(event for event in events if event["type"] == "tool_completed")
     assert completed["payload"]["content"] == "4"
+
+
+def test_openai_configuration_can_be_set_tested_and_removed(client: TestClient) -> None:
+    configured = client.put(
+        "/v1/providers/openai.default/configuration",
+        headers=_AUTHORIZATION,
+        json={
+            "base_url": "https://model.example/v1",
+            "api_key": "must-not-leak",
+            "model": "model-a",
+        },
+    )
+    assert configured.status_code == 200
+    assert configured.json()["configured"] is True
+    assert "must-not-leak" not in configured.text
+
+    tested = client.post(
+        "/v1/providers/openai.default/test",
+        headers=_AUTHORIZATION,
+    )
+    assert tested.status_code == 200
+    assert tested.json() == {"ok": True, "message": "Connection succeeded."}
+    assert "must-not-leak" not in tested.text
+
+    listed = client.get("/v1/providers", headers=_AUTHORIZATION)
+    assert listed.status_code == 200
+    assert "must-not-leak" not in listed.text
+    assert next(
+        profile for profile in listed.json() if profile["id"] == "openai.default"
+    )["model"] == "model-a"
+
+    removed = client.delete(
+        "/v1/providers/openai.default/configuration",
+        headers=_AUTHORIZATION,
+    )
+    assert removed.status_code == 200
+    assert removed.json()["configured"] is False
+    assert "must-not-leak" not in removed.text
+
+
+def test_provider_configuration_rejects_unknown_fields_without_echoing_secrets(
+    client: TestClient,
+) -> None:
+    response = client.put(
+        "/v1/providers/openai.default/configuration",
+        headers=_AUTHORIZATION,
+        json={
+            "base_url": "https://model.example/v1",
+            "api_key": "must-not-leak",
+            "model": "model-a",
+            "trace_key": "must-not-be-accepted",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+    assert "must-not-leak" not in response.text
+    assert "must-not-be-accepted" not in response.text
+
+
+def test_provider_connection_failure_is_sanitized(tmp_path: Path) -> None:
+    def failing_provider_response(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, text="upstream-secret and must-not-leak")
+
+    provider_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(failing_provider_response)
+    )
+    app = create_app(
+        AppSettings(
+            database_path=tmp_path / "crossbar.db",
+            launch_token="integration-token",
+        ),
+        provider_catalog=ProviderCatalog.from_environment({}, http_client=provider_client),
+    )
+    with TestClient(app) as test_client:
+        configured = test_client.put(
+            "/v1/providers/openai.default/configuration",
+            headers=_AUTHORIZATION,
+            json={
+                "base_url": "https://model.example/v1",
+                "api_key": "must-not-leak",
+                "model": "model-a",
+            },
+        )
+        assert configured.status_code == 200
+
+        tested = test_client.post(
+            "/v1/providers/openai.default/test",
+            headers=_AUTHORIZATION,
+        )
+
+    run(provider_client.aclose())
+    assert tested.status_code == 422
+    assert tested.json()["error"]["code"] == "provider_connection_failed"
+    assert "upstream-secret" not in tested.text
+    assert "must-not-leak" not in tested.text
+
+
+def test_provider_configuration_routes_require_authentication(client: TestClient) -> None:
+    configured = client.put(
+        "/v1/providers/openai.default/configuration",
+        json={
+            "base_url": "https://model.example/v1",
+            "api_key": "must-not-leak",
+            "model": "model-a",
+        },
+    )
+    tested = client.post("/v1/providers/openai.default/test")
+    removed = client.delete("/v1/providers/openai.default/configuration")
+
+    assert configured.status_code == 401
+    assert tested.status_code == 401
+    assert removed.status_code == 401
+    assert "must-not-leak" not in configured.text
+
+
+def test_provider_configuration_cors_allows_put_and_delete(client: TestClient) -> None:
+    for method in ("PUT", "DELETE"):
+        response = client.options(
+            "/v1/providers/openai.default/configuration",
+            headers={
+                "Origin": "http://localhost:1420",
+                "Access-Control-Request-Method": method,
+                "Access-Control-Request-Headers": "Authorization, Content-Type",
+            },
+        )
+        assert response.status_code == 200
+        assert method in response.headers["access-control-allow-methods"]

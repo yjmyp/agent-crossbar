@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -21,7 +22,12 @@ from agent_crossbar.api.auth import has_valid_bearer_token
 from agent_crossbar.api.run_service import RunExecutor
 from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.spec import AgentSpec
-from agent_crossbar.runtime.catalog import ProviderCatalog, ProviderConfigurationError
+from agent_crossbar.runtime.catalog import (
+    OpenAIConnectionConfig,
+    ProviderCatalog,
+    ProviderConfigurationError,
+    ProviderProfile,
+)
 from agent_crossbar.runtime.native import NativeRuntime
 from agent_crossbar.runtime.tools import build_default_tool_registry
 from agent_crossbar.storage.database import Database
@@ -117,7 +123,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(settings.allowed_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Last-Event-ID"],
         expose_headers=["X-Request-ID"],
     )
@@ -163,6 +169,17 @@ def create_app(
             "That agent version already exists. Create a new version instead.",
         )
 
+    @app.exception_handler(RequestValidationError)
+    async def handle_request_validation(
+        _: Request,
+        __: RequestValidationError,
+    ) -> JSONResponse:
+        return _error_response(
+            422,
+            "validation_error",
+            "The request did not match the required schema.",
+        )
+
     @app.exception_handler(ProviderConfigurationError)
     async def handle_provider_configuration(
         _: Request,
@@ -183,8 +200,21 @@ def create_app(
         return [_spec_resource(record) for record in spec_store.list()]
 
     @app.get("/v1/providers")
-    async def list_providers() -> list[dict[str, object]]:
-        return [profile.model_dump(mode="json") for profile in catalog.list_public()]
+    async def list_providers() -> list[ProviderProfile]:
+        return catalog.list_public()
+
+    @app.put("/v1/providers/openai.default/configuration")
+    async def configure_openai_provider(payload: OpenAIConnectionConfig) -> ProviderProfile:
+        return catalog.configure_openai(payload)
+
+    @app.delete("/v1/providers/openai.default/configuration")
+    async def remove_openai_provider() -> ProviderProfile:
+        return catalog.remove_openai()
+
+    @app.post("/v1/providers/openai.default/test")
+    async def test_openai_provider() -> dict[str, object]:
+        await catalog.test_openai_connection()
+        return {"ok": True, "message": "Connection succeeded."}
 
     @app.get("/v1/tools")
     async def list_tools() -> list[dict[str, object]]:
