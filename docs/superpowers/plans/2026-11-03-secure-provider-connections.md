@@ -545,7 +545,7 @@ Mark OS credential storage and in-app provider configuration implemented only
 if every prior step passed. Keep MCP, RAG, evaluation, comparison, multi-agent,
 signed distribution, and auto-update explicitly incomplete.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add README.md docs/superpowers/specs/2026-11-02-agent-crossbar-design.md docs/verification/secure-provider-connections.md
