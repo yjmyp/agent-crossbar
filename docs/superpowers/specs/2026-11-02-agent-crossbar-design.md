@@ -8,6 +8,27 @@
 
 **Platform:** Windows-first desktop application, with macOS and Linux compatibility retained
 
+## Implementation status
+
+As of 2026-11-03, the desktop shell, authenticated loopback sidecar, immutable
+AgentSpec persistence, normalized event store, Agent Studio, run inspection,
+and packaged runtime are implemented. The execution core now includes
+provider-neutral messages, bounded multi-turn tool calls, policy-checked
+`calculator` and `text_stats` tools, an OpenAI Chat Completions compatible
+provider, a deterministic offline tool demo, and provider/tool selection in the
+UI.
+
+The execution core has unit, API integration, frontend, full quality-gate, and
+packaged-sidecar evidence in
+[`../../verification/execution-core.md`](../../verification/execution-core.md).
+No real-model run is claimed because the required credentials were absent in
+the verification environment.
+
+The following architecture remains future work and must not be represented as
+complete: OS credential-vault storage, signed distribution and updates, MCP,
+RAG, evaluation and regression gates, cross-run comparison, multi-agent
+collaboration, and additional runtime adapters.
+
 ## 1. Product Goal
 
 Agent Crossbar is a local-first desktop control plane for building, running, inspecting, evaluating, and comparing Agent systems across multiple execution frameworks.

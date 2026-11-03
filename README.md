@@ -12,7 +12,7 @@ The product and architecture specification is in
 
 ## Current capability
 
-Implemented and verified in Vertical Slice 1:
+Implemented and verified through the execution-core slice:
 
 - Native Windows desktop shell with a React application surface.
 - Loopback-only FastAPI sidecar with a random per-launch bearer token.
@@ -20,17 +20,27 @@ Implemented and verified in Vertical Slice 1:
 - Immutable, versioned AgentSpecs with canonical SHA-256 digests.
 - Asynchronous run execution with normalized, sequence-safe event streaming.
 - Durable run, terminal state, output, and trace persistence in SQLite WAL.
+- Bounded multi-turn tool calling with normalized assistant and tool messages.
+- Policy-checked `calculator` and `text_stats` tools with visible tool failures.
+- Provider and tool selection in Agent Studio.
+- OpenAI Chat Completions compatible model profiles.
 - Agent Studio, Command Center, Run Center, Run Detail, and Trace Explorer.
 - NSIS installer for a per-user Windows installation.
 
-The current runtime uses `local.echo`, a deterministic provider used to prove
-the execution, persistence, and trace contracts. It is not a real language
-model. Tool calling, MCP, RAG, evaluation, comparison, and OS-backed secret
-storage remain future slices and are not represented as complete in the UI.
+Two offline providers are always available: `local.echo` for a single response
+and `local.tool-demo` for a deterministic two-turn tool loop. `openai.default`
+becomes selectable only when its base URL, API key, and model are supplied
+through environment variables. This slice does not yet use an OS credential
+vault. MCP, RAG, evaluation, comparison, multi-agent collaboration, and
+additional runtime adapters remain future slices.
 
 See
+[`docs/verification/execution-core.md`](docs/verification/execution-core.md)
+for execution-core commands, pass counts, event ordering, package hash, and the
+explicit real-model `not run` record. Earlier desktop/installer evidence remains
+in
 [`docs/verification/vertical-slice-1.md`](docs/verification/vertical-slice-1.md)
-for the tested capability boundary, package hash, and known limitations.
+with its tested capability boundary and known limitations.
 
 ## Development
 
@@ -50,6 +60,7 @@ Build the packaged sidecar and desktop installer:
 
 ```powershell
 npm run sidecar:build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-sidecar.ps1
 npm run tauri build
 ```
 

@@ -403,7 +403,7 @@ git commit -m "feat: select and expose model providers safely"
 - Produces: provider selector and registered-tool checkboxes
 - Produces: traces render `tool_proposed`, `tool_started`, `tool_completed`, and `tool_failed`
 
-- [ ] **Step 1: Write failing UI tests**
+- [x] **Step 1: Write failing UI tests**
 
 ```tsx
 it("submits only the selected registered tools", async () => {
@@ -420,19 +420,19 @@ it("submits only the selected registered tools", async () => {
 });
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `npm run test:run -- src/pages/AgentStudioPage.test.tsx`
 
 Expected: failure because the page does not load or submit tools.
 
-- [ ] **Step 3: Implement the controls and states**
+- [x] **Step 3: Implement the controls and states**
 
 Load providers and tools with loading/error/empty states. Add an accessible profile
 selector and tool checkboxes with descriptions. Disable launch when the selected
 provider is unavailable. Preserve the existing premium visual language.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run: `npm run test:run -- src/pages/AgentStudioPage.test.tsx src/components/trace/TraceTimeline.test.tsx`
 
@@ -442,7 +442,7 @@ Run: `npm run build`
 
 Expected: all checks pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add src/lib/bridge.ts src/test/fakeBridge.ts src/pages/AgentStudioPage.tsx src/pages/AgentStudioPage.test.tsx src/styles/pages.css
@@ -462,13 +462,13 @@ git commit -m "feat: configure providers and tools in Agent Studio"
 - Documents: exact commands and evidence for an optional real-provider check
 - Documents: secrets are environment-provided in this slice and OS-vault management remains future work
 
-- [ ] **Step 1: Add a deterministic tool-call smoke profile**
+- [x] **Step 1: Add a deterministic tool-call smoke profile**
 
 Add the `local.tool-demo` provider profile. Its first response calls `calculator`
 with `2+2`; its second returns `The answer is 4.`. The profile must remain
 explicitly deterministic and non-generative.
 
-- [ ] **Step 2: Extend the packaged sidecar smoke test**
+- [x] **Step 2: Extend the packaged sidecar smoke test**
 
 Create a spec with `model_profile="local.tool-demo"` and `tools=[calculator]`,
 start the run, and assert persisted events contain:
@@ -482,7 +482,7 @@ run_completed
 
 Assert the terminal output is `The answer is 4.` and the database remains in WAL mode.
 
-- [ ] **Step 3: Run the complete quality gate**
+- [x] **Step 3: Run the complete quality gate**
 
 Run: `npm run verify`
 
@@ -492,7 +492,7 @@ Run: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/smoke-sidecar.
 
 Expected: every stage passes.
 
-- [ ] **Step 4: Perform optional real-model verification**
+- [x] **Step 4: Perform optional real-model verification**
 
 If the machine has `AGENT_CROSSBAR_OPENAI_BASE_URL`,
 `AGENT_CROSSBAR_OPENAI_API_KEY`, and `AGENT_CROSSBAR_OPENAI_MODEL`, run one
@@ -500,14 +500,14 @@ calculation request through the packaged sidecar. Record the provider profile,
 model identifier, run ID, normalized sequence count, terminal status, and output.
 If credentials are absent, record the check as not run; do not synthesize evidence.
 
-- [ ] **Step 5: Document actual evidence and limitations**
+- [x] **Step 5: Document actual evidence and limitations**
 
 Update the verification record with commands, pass counts, tool-event ordering,
 package hash, and any not-run real-model checks. Keep OS credential-vault management,
 signed distribution, MCP, RAG, evaluation, and comparison explicitly outside this
 slice.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```powershell
 git add scripts/smoke-sidecar.ps1 docs/verification/execution-core.md README.md docs/superpowers/specs/2026-11-02-agent-crossbar-design.md

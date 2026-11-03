@@ -7,9 +7,13 @@ $stderrPath = Join-Path $smokeRoot "stderr.log"
 $databasePath = Join-Path $smokeRoot "smoke.db"
 $runtimeTemp = Join-Path $smokeRoot "runtime-temp"
 $binaryPath = Join-Path $projectRoot "src-tauri\binaries\agent-crossbar-sidecar-x86_64-pc-windows-msvc.exe"
+$python = Join-Path $projectRoot ".venv\Scripts\python.exe"
 
 if (-not (Test-Path -LiteralPath $binaryPath)) {
     throw "Packaged sidecar is missing. Run npm run sidecar:build first."
+}
+if (-not (Test-Path -LiteralPath $python)) {
+    throw "Python environment is missing. Run uv sync first."
 }
 
 New-Item -ItemType Directory -Force -Path $smokeRoot, $runtimeTemp | Out-Null
@@ -29,6 +33,7 @@ $previousTemp = $env:TEMP
 $previousTmp = $env:TMP
 $env:TEMP = $runtimeTemp
 $env:TMP = $runtimeTemp
+$packageSha256 = (Get-FileHash -LiteralPath $binaryPath -Algorithm SHA256).Hash
 
 $process = Start-Process `
     -FilePath $binaryPath `
@@ -77,7 +82,14 @@ try {
         version = "1.0.0"
         description = "Packaged sidecar smoke test"
         instructions = "Answer accurately."
-    } | ConvertTo-Json
+        model_profile = "local.tool-demo"
+        tools = @(
+            @{
+                name = "calculator"
+                description = "Evaluate a safe arithmetic expression."
+            }
+        )
+    } | ConvertTo-Json -Depth 10
     $spec = Invoke-RestMethod `
         -Uri "$baseUrl/v1/specs" `
         -Method Post `
@@ -97,8 +109,22 @@ try {
         -ContentType "application/json" `
         -Body $runBody
 
-    Start-Sleep -Seconds 1
-    $finalRun = Invoke-RestMethod -Uri "$baseUrl/v1/runs/$($run.run_id)" -Headers $headers
+    $runDeadline = (Get-Date).AddSeconds(15)
+    $finalRun = $null
+    while ((Get-Date) -lt $runDeadline) {
+        $candidateRun = Invoke-RestMethod `
+            -Uri "$baseUrl/v1/runs/$($run.run_id)" `
+            -Headers $headers
+        if ($candidateRun.status -in @("completed", "failed", "cancelled", "interrupted")) {
+            $finalRun = $candidateRun
+            break
+        }
+        Start-Sleep -Milliseconds 200
+    }
+    if (-not $finalRun) {
+        throw "Packaged run did not reach a terminal state within 15 seconds."
+    }
+
     $eventText = & curl.exe `
         --silent `
         --show-error `
@@ -110,28 +136,57 @@ try {
         throw "Could not read the packaged sidecar event stream."
     }
     $eventText = $eventText -join "`n"
+    $events = @(
+        $eventText -split "`n" |
+            Where-Object { $_ -like "data: *" } |
+            ForEach-Object { ($_ -replace "^data: ", "") | ConvertFrom-Json }
+    )
+    $eventTypes = @($events | ForEach-Object { $_.type })
+    $toolEventTypes = @(
+        $eventTypes | Where-Object {
+            $_ -in @("tool_proposed", "tool_started", "tool_completed", "run_completed")
+        }
+    )
 
     if ($health.status -ne "ok") {
         throw "Health check did not report ok."
     }
-    if ($finalRun.status -ne "completed" -or $finalRun.output -ne "Echo: hello world") {
+    if ($finalRun.status -ne "completed" -or $finalRun.output -ne "The answer is 4.") {
         throw "Packaged runtime did not complete with the expected deterministic output."
     }
-    if (-not $eventText.Contains("run_started") -or
-        -not $eventText.Contains("run_completed")) {
-        throw "Packaged event stream did not contain start and completion events."
+    if ($eventTypes[0] -ne "run_started" -or $eventTypes[-1] -ne "run_completed") {
+        throw "Packaged event stream did not start and end with the expected events."
+    }
+    if (($toolEventTypes -join ",") -ne
+        "tool_proposed,tool_started,tool_completed,run_completed") {
+        throw "Packaged tool events were not persisted in the expected order."
     }
     if (-not (Test-Path -LiteralPath $databasePath)) {
         throw "Packaged sidecar did not create the SQLite database."
+    }
+    $journalMode = & $python -c `
+        "import sqlite3, sys; connection = sqlite3.connect(sys.argv[1]); print(connection.execute('PRAGMA journal_mode').fetchone()[0]); connection.close()" `
+        $databasePath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not inspect the packaged SQLite database."
+    }
+    if ($journalMode.Trim().ToLowerInvariant() -ne "wal") {
+        throw "Packaged SQLite database is not using WAL mode."
     }
 
     [pscustomobject]@{
         status = "passed"
         health = $health.status
         specDigest = $spec.digest
+        runId = $finalRun.run_id
         runStatus = $finalRun.status
         runOutput = $finalRun.output
+        eventCount = $events.Count
+        eventTypes = $eventTypes
+        toolEventTypes = $toolEventTypes
+        journalMode = $journalMode.Trim().ToLowerInvariant()
         databaseCreated = $true
+        packageSha256 = $packageSha256
     } | ConvertTo-Json -Depth 4
 }
 finally {
