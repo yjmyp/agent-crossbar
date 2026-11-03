@@ -11,6 +11,8 @@ from agent_crossbar.domain.events import TokenUsage
 from agent_crossbar.runtime.base import ProviderRequest
 from agent_crossbar.runtime.messages import ConversationMessage, ModelResponse, ToolCall
 
+_REQUEST_TIMEOUT_SECONDS = 20.0
+
 
 class OpenAICompatibleError(Exception):
     def __init__(self, code: str, message: str) -> None:
@@ -74,6 +76,7 @@ class OpenAICompatibleProvider:
                         "Content-Type": "application/json",
                     },
                     json=payload,
+                    timeout=httpx.Timeout(_REQUEST_TIMEOUT_SECONDS),
                 )
             except httpx.HTTPError:
                 raise OpenAICompatibleError(

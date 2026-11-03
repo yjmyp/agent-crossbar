@@ -271,6 +271,36 @@ async def test_provider_rejects_malformed_success_response() -> None:
     assert error.value.code == "malformed_response"
 
 
+@pytest.mark.asyncio
+async def test_provider_requests_use_a_bounded_timeout() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        timeout = request.extensions.get("timeout")
+        assert isinstance(timeout, dict)
+        assert float(timeout["read"]) == pytest.approx(20)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "message": {"content": "OK"},
+                        "finish_reason": "stop",
+                    }
+                ]
+            },
+        )
+
+    provider = OpenAICompatibleProvider(
+        base_url="https://model.example/v1",
+        api_key="test-secret",
+        model="model-a",
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    response = await provider.complete(tool_request())
+
+    assert response.text == "OK"
+
+
 @pytest.mark.parametrize(
     "base_url",
     ("", "file:///tmp/model", "ftp://model.example/v1", "https://"),
