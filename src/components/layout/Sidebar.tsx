@@ -66,7 +66,7 @@ export function Sidebar({
             >
               <Icon size={17} strokeWidth={1.8} />
               <span>{item.label}</span>
-              {["compare", "evaluation", "registry"].includes(item.section) ? (
+              {["compare", "evaluation"].includes(item.section) ? (
                 <span className="nav-item__phase">Next</span>
               ) : null}
             </a>

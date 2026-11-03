@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from "./components/ui/States";
 import { AgentStudioPage } from "./pages/AgentStudioPage";
 import { CommandCenterPage } from "./pages/CommandCenterPage";
 import { NextPhasePage } from "./pages/NextPhasePage";
+import { RegistryPage } from "./pages/RegistryPage";
 import { RunCenterPage } from "./pages/RunCenterPage";
 import { RunDetailPage } from "./pages/RunDetailPage";
 import { TraceExplorerPage } from "./pages/TraceExplorerPage";
@@ -173,7 +174,7 @@ function RouteView({
     return <NextPhasePage phase="evaluation" />;
   }
   if (route === "/registry") {
-    return <NextPhasePage phase="registry" />;
+    return <RegistryPage bridge={bridge} navigate={navigate} />;
   }
   return <CommandCenterPage bridge={bridge} navigate={navigate} />;
 }

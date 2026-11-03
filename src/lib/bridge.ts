@@ -21,6 +21,24 @@ export type ProviderProfile = {
   configuration_error: string | null;
 };
 
+export type ProviderCredentialSummary = {
+  configured: boolean;
+  baseUrl: string | null;
+  model: string | null;
+  storage: string;
+};
+
+export type ProviderCredentialInput = {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+};
+
+export type ProviderConnectionTest = {
+  ok: boolean;
+  message: string;
+};
+
 export type ToolDefinition = {
   name: string;
   description: string;
@@ -113,7 +131,19 @@ export class ApiError extends Error {
   }
 }
 
-export function createBridge(connection: AppConnection) {
+export type DesktopAdapter = {
+  invoke(command: string, args?: Record<string, unknown>): Promise<unknown>;
+};
+
+const tauriDesktop: DesktopAdapter = {
+  invoke: (command: string, args?: Record<string, unknown>) =>
+    invoke<unknown>(command, args),
+};
+
+export function createBridge(
+  connection: AppConnection,
+  desktop: DesktopAdapter = tauriDesktop,
+) {
   const baseUrl = validateConnection(connection);
   const authorization = `Bearer ${connection.token}`;
 
@@ -168,6 +198,52 @@ export function createBridge(connection: AppConnection) {
       request<RunRecord>(`/v1/runs/${encodeURIComponent(runId)}/cancel`, {
         method: "POST",
       }),
+    getProviderCredential: () =>
+      invokeDesktop<ProviderCredentialSummary>(
+        desktop,
+        "get_provider_credential",
+      ),
+    saveProviderCredential: async (input: ProviderCredentialInput) => {
+      await invokeDesktop<ProviderCredentialSummary>(
+        desktop,
+        "save_provider_credential",
+        { input },
+      );
+      try {
+        return await request<ProviderProfile>(
+          "/v1/providers/openai.default/configuration",
+          {
+            method: "PUT",
+            body: JSON.stringify({
+              base_url: input.baseUrl,
+              api_key: input.apiKey,
+              model: input.model,
+            }),
+          },
+        );
+      } catch {
+        throw new Error(
+          "The credential was saved, but the running service could not reload it. Restart Agent Crossbar and try again.",
+        );
+      }
+    },
+    deleteProviderCredential: async () => {
+      await invokeDesktop<void>(desktop, "delete_provider_credential");
+      try {
+        return await request<ProviderProfile>(
+          "/v1/providers/openai.default/configuration",
+          { method: "DELETE" },
+        );
+      } catch {
+        throw new Error(
+          "The credential was removed, but the running service could not unload it. Restart Agent Crossbar and try again.",
+        );
+      }
+    },
+    testProvider: () =>
+      request<ProviderConnectionTest>("/v1/providers/openai.default/test", {
+        method: "POST",
+      }),
     streamRunEvents: (
       runId: string,
       onEvent: (event: RuntimeEvent) => void,
@@ -197,6 +273,18 @@ function validateConnection(connection: AppConnection): string {
     throw new Error("The desktop service launch token is missing.");
   }
   return url.origin;
+}
+
+async function invokeDesktop<T>(
+  desktop: DesktopAdapter,
+  command: string,
+  args?: Record<string, unknown>,
+): Promise<T> {
+  const value =
+    args === undefined
+      ? await desktop.invoke(command)
+      : await desktop.invoke(command, args);
+  return value as T;
 }
 
 async function streamRunEvents(

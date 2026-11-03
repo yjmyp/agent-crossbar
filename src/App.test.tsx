@@ -32,3 +32,20 @@ it("navigates to Agent Studio without losing the desktop shell", async () => {
   await user.click(screen.getByRole("link", { name: "Run Center" }));
   expect(await screen.findByRole("heading", { name: "Run Center" })).toBeInTheDocument();
 });
+
+it("opens the implemented Registry workspace from primary navigation", async () => {
+  const user = userEvent.setup();
+  render(<App bridge={fakeBridge()} initialRoute="/studio" />);
+
+  const registryLink = screen.getByRole("link", { name: "Registry" });
+  expect(registryLink).not.toHaveTextContent("Next");
+
+  await user.click(registryLink);
+
+  expect(await screen.findByRole("heading", { name: "Registry" })).toBeInTheDocument();
+  expect(await screen.findByLabelText("Base URL")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Registry" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+});

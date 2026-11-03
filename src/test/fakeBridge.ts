@@ -1,6 +1,7 @@
 import type {
   AgentSpecRecord,
   Bridge,
+  ProviderCredentialSummary,
   ProviderProfile,
   RunRecord,
   RuntimeEvent,
@@ -27,6 +28,37 @@ export const fakeSpec: AgentSpecRecord = {
   },
 };
 
+export const fakeCredentialSummary: ProviderCredentialSummary = {
+  configured: true,
+  baseUrl: "https://model.example/v1",
+  model: "model-a",
+  storage: "Windows Credential Manager",
+};
+
+export const fakeUnconfiguredOpenAI: ProviderProfile = {
+  id: "openai.default",
+  label: "OpenAI-compatible",
+  provider_type: "openai_chat_completions",
+  model: "not configured",
+  configured: false,
+  missing_configuration: [
+    "AGENT_CROSSBAR_OPENAI_BASE_URL",
+    "AGENT_CROSSBAR_OPENAI_API_KEY",
+    "AGENT_CROSSBAR_OPENAI_MODEL",
+  ],
+  configuration_error: null,
+};
+
+export const fakeConfiguredOpenAI: ProviderProfile = {
+  id: "openai.default",
+  label: "OpenAI-compatible",
+  provider_type: "openai_chat_completions",
+  model: "model-a",
+  configured: true,
+  missing_configuration: [],
+  configuration_error: null,
+};
+
 export const fakeProviders: ProviderProfile[] = [
   {
     id: "local.echo",
@@ -46,19 +78,7 @@ export const fakeProviders: ProviderProfile[] = [
     missing_configuration: [],
     configuration_error: null,
   },
-  {
-    id: "openai.default",
-    label: "OpenAI-compatible",
-    provider_type: "openai_chat_completions",
-    model: "not configured",
-    configured: false,
-    missing_configuration: [
-      "AGENT_CROSSBAR_OPENAI_BASE_URL",
-      "AGENT_CROSSBAR_OPENAI_API_KEY",
-      "AGENT_CROSSBAR_OPENAI_MODEL",
-    ],
-    configuration_error: null,
-  },
+  fakeUnconfiguredOpenAI,
 ];
 
 export const fakeTools: ToolDefinition[] = [
@@ -134,6 +154,15 @@ export function fakeBridge(overrides: Partial<Bridge> = {}): Bridge {
     createRun: async () => fakeRun,
     getRun: async () => fakeRun,
     cancelRun: async () => ({ ...fakeRun, status: "cancelled" }),
+    getProviderCredential: async () => ({
+      configured: false,
+      baseUrl: null,
+      model: null,
+      storage: "Windows Credential Manager",
+    }),
+    saveProviderCredential: async () => fakeConfiguredOpenAI,
+    deleteProviderCredential: async () => fakeUnconfiguredOpenAI,
+    testProvider: async () => ({ ok: true, message: "Connection succeeded." }),
     streamRunEvents: async () => undefined,
     ...overrides,
   };
