@@ -1147,6 +1147,39 @@
   white-space: pre-wrap;
 }
 
+.trace-tool-audit {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  margin-top: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-input);
+}
+
+.trace-tool-audit > span {
+  color: var(--text-tertiary);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trace-tool-audit code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.trace-tool-audit--result {
+  border-color: color-mix(in srgb, var(--positive) 25%, var(--border-subtle));
+}
+
 .trace-event__details {
   margin-top: 7px;
 }

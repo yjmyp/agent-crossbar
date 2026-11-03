@@ -21,7 +21,7 @@ Observed result:
 
 - TypeScript typecheck: passed.
 - ESLint: passed.
-- Frontend tests: 6 files, 11 tests passed.
+- Frontend tests: 6 files, 14 tests passed.
 - Vite production build: passed.
 - Ruff: passed.
 - Backend tests: 101 passed.
@@ -105,6 +105,42 @@ The smoke script parses the persisted SSE payloads rather than string-searching
 for event names. It also polls for a terminal run state and fails if the sidecar
 does not finish within 15 seconds.
 
+## Desktop UI acceptance
+
+The packaged runtime was also exercised through the real Tauri window and
+WebView2 bridge, not only through component tests. The acceptance sequence was:
+
+1. Open Agent Studio.
+2. Select `Load offline demo`.
+3. Confirm provider `local.tool-demo` and tool `calculator`.
+4. Select `Save and run`.
+5. Wait for the persisted run to reach `completed`.
+6. Inspect the normalized trace and terminal output.
+
+Observed desktop run:
+
+- Run ID: `run_1b59bf8c3fc14156ac4d7a16e95ad7ae`.
+- Status: `completed`.
+- Persisted event count: `10`.
+- Tool proposal: `calculator` with
+  `{"expression":"2+2"}`.
+- Tool result: `4`.
+- Final output: `The answer is 4.`.
+
+The UI displayed the full audited tool sequence:
+
+```text
+Tool proposed
+Tool started
+Tool completed
+Run completed
+```
+
+The structured Arguments and Result fields were visible in the trace timeline;
+the complete raw payload remained available in the secondary disclosure. This
+closes the deterministic offline tool-loop through the real desktop IPC path.
+It does not claim a real-model run.
+
 ## Optional real-model verification
 
 Status: **not run**.
@@ -133,7 +169,9 @@ This slice includes:
   terminal event;
 - OpenAI Chat Completions request/response translation;
 - provider and tool discovery in Agent Studio;
+- a one-click offline demo that binds the deterministic provider and safe tool;
 - readable tool events in the trace timeline;
+- structured tool arguments and results visible directly in run details;
 - packaged-sidecar proof of the complete tool-call loop.
 
 The following remain outside this slice:

@@ -33,6 +33,20 @@ const initialForm = {
   input: "",
 };
 
+function loadOfflineDemo() {
+  return {
+    form: {
+      name: "Calculator demo",
+      version: "0.1.0",
+      description: "Deterministic two-turn tool-call demonstration.",
+      instructions: "Use the calculator tool, then report the arithmetic result.",
+      input: "Use the calculator to evaluate 2+2.",
+    },
+    providerId: "local.tool-demo",
+    toolNames: new Set(["calculator"]),
+  };
+}
+
 export function AgentStudioPage({
   bridge,
   navigate,
@@ -82,9 +96,16 @@ export function AgentStudioPage({
         setTools(toolRecords);
         const preferred =
           providerRecords.find(
-            (provider) => provider.id === "local.echo" && provider.configured,
+            (provider) => provider.id === "local.tool-demo" && provider.configured,
           ) ?? providerRecords.find((provider) => provider.configured);
-        setSelectedProviderId((preferred ?? providerRecords[0])?.id ?? "");
+        const preferredId = (preferred ?? providerRecords[0])?.id ?? "";
+        setSelectedProviderId(preferredId);
+        if (
+          preferredId === "local.tool-demo" &&
+          toolRecords.some((tool) => tool.name === "calculator")
+        ) {
+          setSelectedToolNames(new Set(["calculator"]));
+        }
       })
       .catch((reason: unknown) => {
         if (current) setRuntimeLoadError(errorMessage(reason));
@@ -169,9 +190,23 @@ export function AgentStudioPage({
         title="Agent Studio"
         description="Define a portable runtime contract, then execute it without leaving the desktop."
         actions={
-          <StatusBadge tone="accent" dot>
-            Native adapter
-          </StatusBadge>
+          <>
+            <Button
+              tone="secondary"
+              onClick={() => {
+                const demo = loadOfflineDemo();
+                setForm(demo.form);
+                setSelectedProviderId(demo.providerId);
+                setSelectedToolNames(demo.toolNames);
+              }}
+            >
+              <Sparkles size={15} aria-hidden="true" />
+              Load offline demo
+            </Button>
+            <StatusBadge tone="accent" dot>
+              Native adapter
+            </StatusBadge>
+          </>
         }
       />
 

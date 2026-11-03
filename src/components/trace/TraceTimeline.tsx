@@ -95,16 +95,60 @@ function EventPayload({
   if (entries.length === 0) return null;
 
   const summary = eventPayloadSummary(type, payload);
+  const audit = toolAudit(type, payload);
 
   return (
     <>
       {summary ? <p className="trace-event__summary">{summary}</p> : null}
+      {audit ? (
+        <div
+          className={`trace-tool-audit trace-tool-audit--${audit.kind}`}
+          aria-label={`${audit.name} ${audit.kind}`}
+        >
+          <span>{audit.kind === "arguments" ? "Arguments" : "Result"}</span>
+          <code>{formatAuditValue(audit.value)}</code>
+        </div>
+      ) : null}
       <details className="trace-event__details">
         <summary>Payload</summary>
         <pre>{JSON.stringify(payload, null, 2)}</pre>
       </details>
     </>
   );
+}
+
+function toolAudit(
+  type: string,
+  payload: Record<string, unknown>,
+):
+  | {
+      kind: "arguments" | "result";
+      name: string;
+      value: unknown;
+    }
+  | undefined {
+  if (typeof payload.name !== "string") return undefined;
+  if (type === "tool_proposed" && payload.arguments !== undefined) {
+    return {
+      kind: "arguments",
+      name: payload.name,
+      value: payload.arguments,
+    };
+  }
+  if (type === "tool_completed" && payload.content !== undefined) {
+    return {
+      kind: "result",
+      name: payload.name,
+      value: payload.content,
+    };
+  }
+  return undefined;
+}
+
+function formatAuditValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  const serialized = JSON.stringify(value);
+  return serialized ?? String(value);
 }
 
 function eventPayloadSummary(

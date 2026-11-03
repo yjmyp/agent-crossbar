@@ -30,7 +30,6 @@ it("submits only the selected registered tools", async () => {
   render(<AgentStudioPage bridge={bridge} navigate={vi.fn()} />);
 
   await screen.findByRole("checkbox", { name: "calculator" });
-  await user.click(screen.getByRole("checkbox", { name: "calculator" }));
   await completeRequiredFields(user);
   await user.click(screen.getByRole("button", { name: "Save and run" }));
 
@@ -54,6 +53,27 @@ it("blocks launch when the selected provider is not configured", async () => {
   expect(screen.getByText(/Missing AGENT_CROSSBAR_OPENAI_BASE_URL/)).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Save and run" })).toBeDisabled();
   expect(screen.getByText("Select a configured model provider")).toBeInTheDocument();
+});
+
+it("defaults to the offline tool loop with its required tool selected", async () => {
+  render(<AgentStudioPage bridge={fakeBridge()} navigate={vi.fn()} />);
+
+  const provider = await screen.findByLabelText("Model provider");
+  expect(provider).toHaveValue("local.tool-demo");
+  expect(screen.getByRole("checkbox", { name: "calculator" })).toBeChecked();
+});
+
+it("loads a complete offline demo contract for the first run", async () => {
+  const user = userEvent.setup();
+  render(<AgentStudioPage bridge={fakeBridge()} navigate={vi.fn()} />);
+
+  await screen.findByLabelText("Model provider");
+  await user.click(screen.getByRole("button", { name: "Load offline demo" }));
+
+  expect(screen.getByLabelText("Agent name")).toHaveValue("Calculator demo");
+  expect(screen.getByLabelText("Model provider")).toHaveValue("local.tool-demo");
+  expect(screen.getByRole("checkbox", { name: "calculator" })).toBeChecked();
+  expect(screen.getByRole("button", { name: "Save and run" })).toBeEnabled();
 });
 
 async function completeRequiredFields(user: ReturnType<typeof userEvent.setup>) {

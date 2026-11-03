@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 
 import { fakeRuntimeEvent } from "../../test/fakeBridge";
 import { TraceTimeline } from "./TraceTimeline";
@@ -49,4 +49,29 @@ it("renders an ordered tool call chain with a readable result", () => {
   expect(screen.getByText("calculator started")).toBeInTheDocument();
   expect(screen.getByText("calculator → 4")).toBeInTheDocument();
   expect(screen.getByText("The answer is 4.")).toBeInTheDocument();
+});
+
+it("renders compact tool arguments and results outside the raw payload", () => {
+  render(
+    <TraceTimeline
+      events={[
+        fakeRuntimeEvent(1, "tool_proposed", {
+          name: "calculator",
+          arguments: { expression: "2+2" },
+        }),
+        fakeRuntimeEvent(2, "tool_completed", {
+          name: "calculator",
+          content: "4",
+        }),
+      ]}
+    />,
+  );
+
+  const argumentsView = screen.getByLabelText("calculator arguments");
+  expect(within(argumentsView).getByText("Arguments")).toBeInTheDocument();
+  expect(within(argumentsView).getByText('{"expression":"2+2"}')).toBeInTheDocument();
+
+  const resultView = screen.getByLabelText("calculator result");
+  expect(within(resultView).getByText("Result")).toBeInTheDocument();
+  expect(within(resultView).getByText("4")).toBeInTheDocument();
 });

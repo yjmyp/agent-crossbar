@@ -38,6 +38,15 @@ export const fakeProviders: ProviderProfile[] = [
     configuration_error: null,
   },
   {
+    id: "local.tool-demo",
+    label: "Offline tool demo",
+    provider_type: "deterministic_tool_loop",
+    model: "deterministic-tool-demo",
+    configured: true,
+    missing_configuration: [],
+    configuration_error: null,
+  },
+  {
     id: "openai.default",
     label: "OpenAI-compatible",
     provider_type: "openai_chat_completions",
