@@ -348,7 +348,7 @@ git commit -m "feat: add OpenAI-compatible model provider"
 - Produces API: `GET /v1/tools`
 - Guarantees: public provider metadata never includes the API key
 
-- [ ] **Step 1: Write failing catalog and public-metadata tests**
+- [x] **Step 1: Write failing catalog and public-metadata tests**
 
 ```python
 def test_catalog_exposes_configuration_without_secret() -> None:
@@ -364,25 +364,25 @@ def test_catalog_exposes_configuration_without_secret() -> None:
     assert {profile.id for profile in payload} == {"local.echo", "openai.default"}
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 Run: `uv run pytest backend/tests/runtime/test_catalog.py -v`
 
 Expected: collection failure because the catalog module does not exist.
 
-- [ ] **Step 3: Implement catalog selection and API discovery**
+- [x] **Step 3: Implement catalog selection and API discovery**
 
 Configure the runtime factory to choose a provider by `AgentSpec.model_profile`.
 Return `422 provider_not_configured` if a spec names an unavailable profile. Expose
 tool definitions and provider configuration status through authenticated endpoints.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run: `uv run pytest backend/tests/runtime/test_catalog.py backend/tests/api/test_runs.py -v`
 
 Expected: all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add backend/agent_crossbar/runtime/catalog.py backend/agent_crossbar/api/app.py backend/tests/runtime/test_catalog.py backend/tests/api/test_runs.py

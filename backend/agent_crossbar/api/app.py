@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,7 +21,8 @@ from agent_crossbar.api.auth import has_valid_bearer_token
 from agent_crossbar.api.run_service import RunExecutor
 from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.spec import AgentSpec
-from agent_crossbar.runtime.native import EchoProvider, NativeRuntime
+from agent_crossbar.runtime.catalog import ProviderCatalog, ProviderConfigurationError
+from agent_crossbar.runtime.native import NativeRuntime
 from agent_crossbar.runtime.tools import build_default_tool_registry
 from agent_crossbar.storage.database import Database
 from agent_crossbar.storage.runs import (
@@ -68,18 +70,24 @@ class RunResource(BaseModel):
     finished_at: datetime | None
 
 
-def create_app(settings: AppSettings) -> FastAPI:
+def create_app(
+    settings: AppSettings,
+    *,
+    provider_catalog: ProviderCatalog | None = None,
+) -> FastAPI:
     if not settings.launch_token:
         raise ValueError("launch_token must not be blank")
 
+    catalog = provider_catalog or ProviderCatalog.from_environment(os.environ)
+    tool_registry = build_default_tool_registry()
     database = Database(settings.database_path)
     spec_store = SpecStore(database)
     run_store = RunStore(database)
     run_executor = RunExecutor(
         run_store,
-        runtime_factory=lambda: NativeRuntime(
-            provider=EchoProvider(),
-            tool_registry=build_default_tool_registry(),
+        runtime_factory=lambda spec: NativeRuntime(
+            provider=catalog.provider_for(spec.model_profile),
+            tool_registry=tool_registry,
         ),
     )
 
@@ -101,6 +109,8 @@ def create_app(settings: AppSettings) -> FastAPI:
     app.state.spec_store = spec_store
     app.state.run_store = run_store
     app.state.run_executor = run_executor
+    app.state.provider_catalog = catalog
+    app.state.tool_registry = tool_registry
     app.state.settings = settings
 
     app.add_middleware(
@@ -153,6 +163,13 @@ def create_app(settings: AppSettings) -> FastAPI:
             "That agent version already exists. Create a new version instead.",
         )
 
+    @app.exception_handler(ProviderConfigurationError)
+    async def handle_provider_configuration(
+        _: Request,
+        error: ProviderConfigurationError,
+    ) -> JSONResponse:
+        return _error_response(422, error.code, str(error))
+
     @app.get("/health")
     async def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__, "database": "ready"}
@@ -165,9 +182,18 @@ def create_app(settings: AppSettings) -> FastAPI:
     async def list_specs() -> list[dict[str, object]]:
         return [_spec_resource(record) for record in spec_store.list()]
 
+    @app.get("/v1/providers")
+    async def list_providers() -> list[dict[str, object]]:
+        return [profile.model_dump(mode="json") for profile in catalog.list_public()]
+
+    @app.get("/v1/tools")
+    async def list_tools() -> list[dict[str, object]]:
+        return [definition.model_dump(mode="json") for definition in tool_registry.available()]
+
     @app.post("/v1/runs", status_code=202)
     async def create_run(payload: CreateRunRequest) -> dict[str, object]:
         spec_record = spec_store.get(payload.spec_id, payload.version)
+        catalog.provider_for(spec_record.spec.model_profile)
         run = run_store.create(
             agent_id=spec_record.agent_id,
             spec_version=spec_record.spec.version,

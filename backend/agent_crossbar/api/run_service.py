@@ -20,7 +20,7 @@ class RunExecutor:
     def __init__(
         self,
         run_store: RunStore,
-        runtime_factory: Callable[[], object],
+        runtime_factory: Callable[[AgentSpec], object],
     ) -> None:
         self._run_store = run_store
         self._runtime_factory = runtime_factory
@@ -68,7 +68,7 @@ class RunExecutor:
         error: dict[str, object] | None = None
         try:
             self._run_store.mark_running(run.run_id)
-            runtime = self._runtime_factory()
+            runtime = self._runtime_factory(spec)
             request = RuntimeRequest(
                 run_id=run.run_id,
                 spec=spec,
@@ -91,9 +91,12 @@ class RunExecutor:
                 RuntimeEventType.RUN_CANCELLED,
                 {"reason": "worker_cancelled"},
             )
-        except Exception as exception:
+        except Exception:
             terminal_status = RunStatus.FAILED
-            error = {"code": "worker_error", "message": str(exception)}
+            error = {
+                "code": "worker_error",
+                "message": "The run worker failed unexpectedly.",
+            }
             self._append_fallback_terminal(
                 run.run_id,
                 RuntimeEventType.RUN_FAILED,
