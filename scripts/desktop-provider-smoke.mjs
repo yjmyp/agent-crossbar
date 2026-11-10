@@ -11,6 +11,15 @@ const screenshotDirectory = path.join(projectRoot, "output", "verification");
 const syntheticKey = "crossbar-e2e-synthetic-not-real-20261103";
 const cdpPort = Number(process.env.AGENT_CROSSBAR_CDP_PORT ?? "9222");
 
+export function selectAgentCrossbarPage(pages) {
+  return pages.find(
+    (candidate) =>
+      candidate.type === "page" &&
+      candidate.title?.includes("Agent Crossbar") &&
+      candidate.webSocketDebuggerUrl,
+  );
+}
+
 class CdpSession {
   #socket;
   #sequence = 0;
@@ -35,12 +44,7 @@ class CdpSession {
         const pages = await (
           await fetch(`http://127.0.0.1:${cdpPort}/json`)
         ).json();
-        page = pages.find(
-          (candidate) =>
-            candidate.type === "page" &&
-            candidate.title === "Agent Crossbar" &&
-            candidate.webSocketDebuggerUrl,
-        );
+        page = selectAgentCrossbarPage(pages);
         if (page) break;
       } catch {
         // The development WebView may still be starting.
@@ -180,7 +184,7 @@ async function openRegistry(session) {
     "the Registry form",
   );
   await session.waitFor(
-    '!document.body.innerText.includes("Reading the operating system credential vault")',
+    '!document.body.innerText.includes("正在读取操作系统凭据库")',
     "the credential summary",
   );
 }
@@ -232,15 +236,15 @@ async function removeIfConfigured(session) {
   try {
     await openRegistry(session);
     const text = await session.bodyText();
-    if (!text.includes("Connection stored securely")) return;
-    await clickButton(session, "Remove connection");
+    if (!text.includes("连接已安全保存")) return;
+    await clickButton(session, "移除连接");
     await session.waitFor(
-      'document.body.innerText.includes("Remove this model connection?")',
+      'document.body.innerText.includes("确认移除这个模型连接？")',
       "the removal confirmation",
     );
-    await clickButton(session, "Confirm removal");
+    await clickButton(session, "确认移除");
     await session.waitFor(
-      'document.body.innerText.includes("Connection removed")',
+      'document.body.innerText.includes("连接已移除")',
       "credential removal",
     );
   } catch {
@@ -261,7 +265,7 @@ async function main() {
     await openRegistry(session);
 
     const initialText = await session.bodyText();
-    if (initialText.includes("Connection stored securely")) {
+    if (initialText.includes("连接已安全保存")) {
       throw new Error(
         "Refusing to overwrite an existing provider credential during the smoke test.",
       );
@@ -270,9 +274,9 @@ async function main() {
     mock = await startMockProvider();
     const baseUrl = `http://127.0.0.1:${mock.port}/v1`;
     await fillProviderForm(session, baseUrl);
-    await clickButton(session, "Save connection");
+    await clickButton(session, "保存连接");
     await session.waitFor(
-      'document.body.innerText.includes("Connection stored securely")',
+      'document.body.innerText.includes("连接已安全保存")',
       "the saved connection",
     );
 
@@ -282,9 +286,9 @@ async function main() {
     if (!keyCleared) throw new Error("The API key field did not clear after saving.");
     const savedScreenshot = await session.screenshot("desktop-provider-saved.png");
 
-    await clickButton(session, "Test connection");
+    await clickButton(session, "测试连接");
     await session.waitFor(
-      'document.body.innerText.includes("Connection verified") && document.body.innerText.includes("Connection succeeded.")',
+      'document.body.innerText.includes("连接验证成功") && document.body.innerText.includes("连接测试成功。")',
       "the explicit connection test",
     );
     const testedScreenshot = await session.screenshot("desktop-provider-tested.png");
@@ -298,26 +302,26 @@ async function main() {
     await openRegistry(session);
     await session.evaluate("location.reload()");
     await session.waitFor(
-      'document.body.innerText.includes("Connection stored securely") && document.querySelector("#provider-api-key")?.value === ""',
+      'document.body.innerText.includes("连接已安全保存") && document.querySelector("#provider-api-key")?.value === ""',
       "the credential summary after reload",
     );
 
-    await clickButton(session, "Remove connection");
+    await clickButton(session, "移除连接");
     await session.waitFor(
-      'document.body.innerText.includes("Remove this model connection?")',
+      'document.body.innerText.includes("确认移除这个模型连接？")',
       "the removal confirmation",
     );
     const confirmationScreenshot = await session.screenshot(
       "desktop-provider-removal-confirmation.png",
     );
-    await clickButton(session, "Confirm removal");
+    await clickButton(session, "确认移除");
     await session.waitFor(
-      'document.body.innerText.includes("Connection removed")',
+      'document.body.innerText.includes("连接已移除")',
       "credential removal",
     );
     await session.evaluate("location.reload()");
     await session.waitFor(
-      'document.body.innerText.includes("Offline Only") && !document.body.innerText.includes("Connection stored securely") && document.querySelector("#provider-api-key")?.value === ""',
+      'document.body.innerText.includes("仅限离线") && !document.body.innerText.includes("连接已安全保存") && document.querySelector("#provider-api-key")?.value === ""',
       "the offline state after removal",
     );
     const removedScreenshot = await session.screenshot("desktop-provider-removed.png");
@@ -352,12 +356,14 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(
-    JSON.stringify({
-      status: "failed",
-      error: error instanceof Error ? error.message : String(error),
-    }),
-  );
-  process.exitCode = 1;
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(
+      JSON.stringify({
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
+    process.exitCode = 1;
+  });
+}

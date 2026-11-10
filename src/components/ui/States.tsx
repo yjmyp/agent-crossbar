@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, Inbox, LoaderCircle, RotateCcw } from "lucide-react";
 import { Button } from "./Button";
 
-export function LoadingState({ label = "Loading local data" }: { label?: string }) {
+export function LoadingState({ label = "正在读取本地数据" }: { label?: string }) {
   return (
     <div className="state-panel" role="status">
       <LoaderCircle className="state-panel__spinner" size={22} aria-hidden="true" />
@@ -33,7 +33,7 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  title = "Something needs attention",
+  title = "需要处理一个问题",
   message,
   onRetry,
 }: {
@@ -51,7 +51,7 @@ export function ErrorState({
       {onRetry ? (
         <Button tone="secondary" onClick={onRetry}>
           <RotateCcw size={14} aria-hidden="true" />
-          Retry
+          重试
         </Button>
       ) : null}
     </div>

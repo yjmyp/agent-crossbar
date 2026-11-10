@@ -6,6 +6,7 @@ authors = ["Agent Crossbar"]
 license = "MIT"
 edition = "2024"
 rust-version = "1.90"
+default-run = "agent-crossbar"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +18,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
+base64 = "0.22"
 keyring = "4.2"
+minisign-verify = "0.3"
+semver = "1"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = { version = "0.4", features = ["std"] }
@@ -26,3 +30,5 @@ tauri-plugin-shell = "2"
 tokio = { version = "1", features = ["sync", "time"] }
 url = "2"
 uuid = { version = "1", features = ["v4"] }
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"

@@ -36,6 +36,11 @@ try {
         --name agent-crossbar-sidecar `
         --paths backend `
         --collect-submodules uvicorn `
+        --collect-submodules langgraph `
+        --collect-submodules langchain_core `
+        --collect-submodules mcp.client `
+        --collect-submodules mcp.shared `
+        --collect-submodules mcp.types `
         --distpath $distRoot `
         --workpath $buildRoot `
         --specpath $buildRoot `

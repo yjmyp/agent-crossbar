@@ -9,6 +9,10 @@ traces, and non-secret UI responses. This verifies the secure-provider
 milestone, not the complete commercial product described by the long-term
 architecture.
 
+This file preserves the test counts and package hash observed at the
+secure-provider milestone. The latest full-platform quality gate and release
+artifacts are recorded in [`agent-platform.md`](agent-platform.md).
+
 ## Complete automated quality gate
 
 Command:
@@ -21,10 +25,10 @@ Observed result: exit code `0`.
 
 - TypeScript typecheck: passed.
 - ESLint: passed.
-- Frontend tests: 7 files, 22 tests passed.
+- Frontend tests: 11 files, 37 tests passed.
 - Vite production build: passed.
 - Ruff: passed.
-- Backend tests: 111 passed.
+- Backend tests: 122 passed.
 - Rust formatting: passed.
 - Rust tests: 8 passed.
 - Rust `cargo check`: passed.
@@ -71,7 +75,7 @@ Observed result: PyInstaller built
 sidecar SHA-256 was:
 
 ```text
-20DA1E599C44BDC679855E54D708366FD40CEF175C675241826A71CA551CA4DD
+CB71DAE4464CEEBFB77480EADD18A39F8AE832DB2C157B2CFF44462086EEB252
 ```
 
 ### Offline tool loop
@@ -89,7 +93,7 @@ Observed result:
 - Provider: `local.tool-demo`.
 - Spec digest:
   `sha256:17067ae296b774890ab9064ce2f669b3e06aa5efb12bb3ec082f18204ba1b320`.
-- Run ID: `run_be20df0a0c6d41188f1c821aa90169fd`.
+- Run ID: `run_a5ebc775211046e480c841efeb05d453`.
 - Terminal status: `completed`.
 - Final output: `The answer is 4.`.
 - Event count: 10.
@@ -119,7 +123,7 @@ Observed result:
 - Provider configured: `true`.
 - Provider model: `smoke-model`.
 - Connection test: `Connection succeeded.`.
-- Run ID: `run_01b02721a58447a0830d7f861850658a`.
+- Run ID: `run_70e3ce990d134dd0903730c23a9ca43c`.
 - Terminal status: `completed`.
 - Final output: `OK`.
 - Synthetic key absent from the database and logs: `true`.
@@ -191,15 +195,19 @@ This milestone includes:
   frontend build output, and Git-tracked documentation;
 - packaged-sidecar and live-desktop acceptance evidence.
 
-The following remain unimplemented and must not be presented as complete:
+The following were outside this secure-provider milestone and were added by a
+later platform milestone:
 
-- MCP and remote tool protocols;
-- RAG and knowledge ingestion;
-- evaluation datasets and regression gates;
-- cross-run comparison;
-- multi-agent collaboration;
-- additional runtime adapters;
-- signed distribution and automatic updates;
-- production telemetry, commercial licensing, and operational support.
+- MCP stdio/HTTP registration, discovery, and tool invocation;
+- lexical FTS5 BM25/exact-fallback knowledge ingestion and retrieval;
+- bounded multi-agent supervisor/handoff delegation;
+- LangGraph, structured-output, and review runtime adapters;
+- Authenticode/signing scripts, Tauri Minisign update verification, update
+  installation controls, and a per-user MSI.
+
+Production Authenticode credentials, production Tauri signing keys, and an
+HTTPS update endpoint are still not supplied. Production telemetry, commercial
+licensing, and operational support remain outside the engineering preview.
+See [`agent-platform.md`](agent-platform.md) for current evidence.
 
 No claim of full commercial or production readiness is made from this record.

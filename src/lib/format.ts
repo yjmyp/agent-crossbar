@@ -1,7 +1,7 @@
 export function formatRelativeTime(value: string): string {
   const date = new Date(value);
   const elapsedSeconds = Math.round((date.getTime() - Date.now()) / 1000);
-  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const formatter = new Intl.RelativeTimeFormat("zh-CN", { numeric: "auto" });
 
   if (Math.abs(elapsedSeconds) < 60) {
     return formatter.format(elapsedSeconds, "second");
@@ -18,12 +18,12 @@ export function formatRelativeTime(value: string): string {
 }
 
 export function formatDuration(start: string | null, end: string | null): string {
-  if (!start) return "Waiting";
-  if (!end) return "In progress";
+  if (!start) return "等待开始";
+  if (!end) return "进行中";
   const milliseconds = new Date(end).getTime() - new Date(start).getTime();
-  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "Unknown";
-  if (milliseconds < 1000) return `${milliseconds} ms`;
-  return `${(milliseconds / 1000).toFixed(2)} s`;
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return "未知";
+  if (milliseconds < 1000) return `${milliseconds} 毫秒`;
+  return `${(milliseconds / 1000).toFixed(2)} 秒`;
 }
 
 export function shortId(value: string): string {

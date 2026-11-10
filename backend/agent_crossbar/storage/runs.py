@@ -44,6 +44,14 @@ class RunStateError(Exception):
     """Raised when a run status transition is not allowed."""
 
 
+class AgentLimitExceededError(Exception):
+    """Raised when a collaboration has no remaining agent slots."""
+
+
+class DelegationDepthExceededError(Exception):
+    """Raised when creating a child would exceed the delegation depth."""
+
+
 @dataclass(frozen=True, slots=True)
 class RunRecord:
     run_id: str
@@ -56,20 +64,36 @@ class RunRecord:
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    parent_run_id: str | None = None
+    root_run_id: str | None = None
+    delegation_depth: int = 0
 
 
 class RunStore:
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    def create(self, *, agent_id: str, spec_version: str, input_text: str) -> RunRecord:
+    def create(
+        self,
+        *,
+        agent_id: str,
+        spec_version: str,
+        input_text: str,
+        parent_run_id: str | None = None,
+        root_run_id: str | None = None,
+        delegation_depth: int = 0,
+    ) -> RunRecord:
         run_id = f"run_{uuid.uuid4().hex}"
         now = datetime.now(UTC)
+        effective_root_run_id = root_run_id or run_id
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
-                INSERT INTO runs(run_id, agent_id, spec_version, input_text, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO runs(
+                    run_id, agent_id, spec_version, input_text, status, created_at,
+                    parent_run_id, root_run_id, delegation_depth
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -78,6 +102,80 @@ class RunStore:
                     input_text,
                     RunStatus.QUEUED.value,
                     now.isoformat(),
+                    parent_run_id,
+                    effective_root_run_id,
+                    delegation_depth,
+                ),
+            )
+        return self.get(run_id)
+
+    def create_child_with_limit(
+        self,
+        *,
+        parent_run_id: str,
+        agent_id: str,
+        spec_version: str,
+        input_text: str,
+        max_agents: int,
+        max_depth: int,
+    ) -> RunRecord:
+        if max_agents < 1:
+            raise ValueError("max_agents must be at least 1")
+        if max_depth < 1:
+            raise ValueError("max_depth must be at least 1")
+
+        run_id = f"run_{uuid.uuid4().hex}"
+        now = datetime.now(UTC)
+        with self._database.write_lock, self._database.connection:
+            parent_row = self._database.connection.execute(
+                """
+                SELECT root_run_id, delegation_depth
+                FROM runs
+                WHERE run_id = ?
+                """,
+                (parent_run_id,),
+            ).fetchone()
+            if parent_row is None:
+                raise RunNotFoundError(f"run {parent_run_id} does not exist")
+
+            root_run_id = parent_row["root_run_id"] or parent_run_id
+            depth = int(parent_row["delegation_depth"]) + 1
+            if depth > max_depth:
+                raise DelegationDepthExceededError(
+                    f"delegation depth cannot exceed {max_depth}"
+                )
+
+            count_row = self._database.connection.execute(
+                """
+                SELECT COUNT(*) AS descendant_count
+                FROM runs
+                WHERE root_run_id = ? AND run_id <> ?
+                """,
+                (root_run_id, root_run_id),
+            ).fetchone()
+            if int(count_row["descendant_count"]) >= max_agents - 1:
+                raise AgentLimitExceededError(
+                    "the collaboration has reached its total agent limit"
+                )
+
+            self._database.connection.execute(
+                """
+                INSERT INTO runs(
+                    run_id, agent_id, spec_version, input_text, status, created_at,
+                    parent_run_id, root_run_id, delegation_depth
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    agent_id,
+                    spec_version,
+                    input_text,
+                    RunStatus.QUEUED.value,
+                    now.isoformat(),
+                    parent_run_id,
+                    root_run_id,
+                    depth,
                 ),
             )
         return self.get(run_id)
@@ -86,7 +184,8 @@ class RunStore:
         row = self._database.connection.execute(
             """
             SELECT run_id, agent_id, spec_version, input_text, status, output, error_json,
-                   created_at, started_at, finished_at
+                   created_at, started_at, finished_at, parent_run_id, root_run_id,
+                   delegation_depth
             FROM runs
             WHERE run_id = ?
             """,
@@ -102,12 +201,76 @@ class RunStore:
         rows = self._database.connection.execute(
             """
             SELECT run_id, agent_id, spec_version, input_text, status, output, error_json,
-                   created_at, started_at, finished_at
+                   created_at, started_at, finished_at, parent_run_id, root_run_id,
+                   delegation_depth
             FROM runs
             ORDER BY created_at DESC, rowid DESC
             LIMIT ?
             """,
             (limit,),
+        ).fetchall()
+        return [_run_from_row(row) for row in rows]
+
+    def list_children(self, parent_run_id: str) -> list[RunRecord]:
+        rows = self._database.connection.execute(
+            """
+            SELECT run_id, agent_id, spec_version, input_text, status, output, error_json,
+                   created_at, started_at, finished_at, parent_run_id, root_run_id,
+                   delegation_depth
+            FROM runs
+            WHERE parent_run_id = ?
+            ORDER BY created_at ASC, rowid ASC
+            """,
+            (parent_run_id,),
+        ).fetchall()
+        return [_run_from_row(row) for row in rows]
+
+    def count_descendants(self, root_run_id: str) -> int:
+        row = self._database.connection.execute(
+            """
+            SELECT COUNT(*)
+            FROM runs
+            WHERE root_run_id = ? AND run_id <> ?
+            """,
+            (root_run_id, root_run_id),
+        ).fetchone()
+        return int(row[0])
+
+    def list_descendants(self, root_run_id: str) -> list[RunRecord]:
+        rows = self._database.connection.execute(
+            """
+            SELECT run_id, agent_id, spec_version, input_text, status, output, error_json,
+                   created_at, started_at, finished_at, parent_run_id, root_run_id,
+                   delegation_depth
+            FROM runs
+            WHERE root_run_id = ? AND run_id <> ?
+            ORDER BY delegation_depth ASC, created_at ASC, rowid ASC
+            """,
+            (root_run_id, root_run_id),
+        ).fetchall()
+        return [_run_from_row(row) for row in rows]
+
+    def list_subtree(self, run_id: str) -> list[RunRecord]:
+        rows = self._database.connection.execute(
+            """
+            WITH RECURSIVE subtree(run_id, sort_path) AS (
+                SELECT run_id, printf('%020d', rowid)
+                FROM runs
+                WHERE run_id = ?
+                UNION ALL
+                SELECT child.run_id, subtree.sort_path || '.' || printf('%020d', child.rowid)
+                FROM runs AS child
+                JOIN subtree ON child.parent_run_id = subtree.run_id
+            )
+            SELECT runs.run_id, runs.agent_id, runs.spec_version, runs.input_text,
+                   runs.status, runs.output, runs.error_json, runs.created_at,
+                   runs.started_at, runs.finished_at, runs.parent_run_id,
+                   runs.root_run_id, runs.delegation_depth
+            FROM runs
+            JOIN subtree ON subtree.run_id = runs.run_id
+            ORDER BY subtree.sort_path
+            """,
+            (run_id,),
         ).fetchall()
         return [_run_from_row(row) for row in rows]
 
@@ -232,6 +395,9 @@ def _run_from_row(row: sqlite3.Row) -> RunRecord:
         finished_at=(
             datetime.fromisoformat(row["finished_at"]) if row["finished_at"] is not None else None
         ),
+        parent_run_id=row["parent_run_id"],
+        root_run_id=row["root_run_id"],
+        delegation_depth=row["delegation_depth"],
     )
 
 

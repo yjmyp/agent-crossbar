@@ -5,6 +5,8 @@ from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType
 from agent_crossbar.domain.spec import AgentSpec
 from agent_crossbar.storage.database import Database
 from agent_crossbar.storage.runs import (
+    AgentLimitExceededError,
+    DelegationDepthExceededError,
     DuplicateEventError,
     RunStateError,
     RunStatus,
@@ -76,3 +78,79 @@ def test_terminal_status_cannot_be_overwritten(tmp_path: Path) -> None:
 
     with pytest.raises(RunStateError):
         store.mark_terminal(run.run_id, RunStatus.FAILED, error={"code": "late_failure"})
+
+
+def test_list_subtree_returns_each_descendant_once_from_any_node(tmp_path: Path) -> None:
+    database, store, agent_id = make_run_store(tmp_path)
+    root = store.create(agent_id=agent_id, spec_version="1.0.0", input_text="root")
+    first = store.create(
+        agent_id=agent_id,
+        spec_version="1.0.0",
+        input_text="first",
+        parent_run_id=root.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=1,
+    )
+    sibling = store.create(
+        agent_id=agent_id,
+        spec_version="1.0.0",
+        input_text="sibling",
+        parent_run_id=root.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=1,
+    )
+    grandchild = store.create(
+        agent_id=agent_id,
+        spec_version="1.0.0",
+        input_text="grandchild",
+        parent_run_id=first.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=2,
+    )
+
+    root_nodes = store.list_subtree(root.run_id)
+    middle_nodes = store.list_subtree(first.run_id)
+
+    assert [record.run_id for record in root_nodes] == [
+        root.run_id,
+        first.run_id,
+        grandchild.run_id,
+        sibling.run_id,
+    ]
+    assert [record.run_id for record in middle_nodes] == [
+        first.run_id,
+        grandchild.run_id,
+    ]
+
+
+def test_create_child_with_limit_is_atomic_and_enforces_depth(tmp_path: Path) -> None:
+    database, store, agent_id = make_run_store(tmp_path)
+    root = store.create(agent_id=agent_id, spec_version="1.0.0", input_text="root")
+    child = store.create_child_with_limit(
+        parent_run_id=root.run_id,
+        agent_id=agent_id,
+        spec_version="1.0.0",
+        input_text="child",
+        max_agents=2,
+        max_depth=3,
+    )
+
+    with pytest.raises(AgentLimitExceededError):
+        store.create_child_with_limit(
+            parent_run_id=root.run_id,
+            agent_id=agent_id,
+            spec_version="1.0.0",
+            input_text="too many",
+            max_agents=2,
+            max_depth=3,
+        )
+
+    with pytest.raises(DelegationDepthExceededError):
+        store.create_child_with_limit(
+            parent_run_id=child.run_id,
+            agent_id=agent_id,
+            spec_version="1.0.0",
+            input_text="too deep",
+            max_agents=8,
+            max_depth=1,
+        )

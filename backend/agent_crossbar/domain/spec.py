@@ -50,9 +50,23 @@ class ExecutionPolicy(DomainModel):
     max_concurrency: int = Field(default=1, ge=1, le=16)
 
 
+class AgentMember(DomainModel):
+    agent_id: str = Field(min_length=1, max_length=100)
+    version: str = Field(min_length=5, max_length=80)
+    role: str = Field(min_length=1, max_length=200)
+
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls, value: str) -> str:
+        if not _SEMANTIC_VERSION.fullmatch(value):
+            raise ValueError("version must be a semantic version such as 1.2.3 or 1.2.3-rc.1")
+        return value
+
+
 class CollaborationPolicy(DomainModel):
-    mode: Literal["single", "supervisor", "handoff", "group"] = "single"
+    mode: Literal["single", "supervisor"] = "single"
     max_agents: int = Field(default=1, ge=1, le=32)
+    members: tuple[AgentMember, ...] = ()
 
     @model_validator(mode="after")
     def validate_agent_count(self) -> CollaborationPolicy:
@@ -60,6 +74,15 @@ class CollaborationPolicy(DomainModel):
             raise ValueError("single collaboration requires max_agents to be 1")
         if self.mode != "single" and self.max_agents < 2:
             raise ValueError("multi-agent collaboration requires max_agents of at least 2")
+        if self.mode == "single" and self.members:
+            raise ValueError("single collaboration must not declare member agents")
+        if self.mode != "single" and not self.members:
+            raise ValueError("multi-agent collaboration requires at least one member agent")
+        if len(self.members) >= self.max_agents and self.mode != "single":
+            raise ValueError("max_agents must exceed the number of member agents")
+        member_keys = [(member.agent_id, member.version) for member in self.members]
+        if len(member_keys) != len(set(member_keys)):
+            raise ValueError("collaboration members must be unique")
         return self
 
 
@@ -72,6 +95,7 @@ class AgentSpec(DomainModel):
     name: str = Field(min_length=1, max_length=80)
     version: str = Field(min_length=5, max_length=80)
     description: str = Field(default="", max_length=1_000)
+    runtime: Literal["native", "langgraph", "review", "structured"] = "native"
     model_profile: str = Field(default="local.echo", min_length=1, max_length=100)
     instructions: str = Field(min_length=1, max_length=100_000)
     tools: tuple[ToolReference, ...] = ()

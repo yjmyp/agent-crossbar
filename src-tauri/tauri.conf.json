@@ -15,9 +15,32 @@
       "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'"
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": [],
+      "pubkey": "",
+      "dangerousInsecureTransportProtocol": false,
+      "dangerousAcceptInvalidCerts": false,
+      "dangerousAcceptInvalidHostnames": false,
+      "requireSignedVersion": true,
+      "allowDowngrades": false,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": ["msi"],
+    "windows": {
+      "allowDowngrades": false,
+      "wix": {
+        "template": "windows/installer-per-user.wxs"
+      },
+      "nsis": {
+        "compression": "zlib"
+      }
+    },
     "externalBin": ["binaries/agent-crossbar-sidecar"],
     "shortDescription": "Build, run, and inspect local AI agent systems.",
     "longDescription": "Agent Crossbar is a local-first desktop control plane for authoring, running, tracing, and evaluating AI agent systems.",

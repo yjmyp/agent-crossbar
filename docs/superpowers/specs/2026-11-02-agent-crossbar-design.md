@@ -30,10 +30,40 @@ and real-desktop-webview evidence in
 The automated provider checks use a synthetic key against a local
 OpenAI-compatible HTTP server. No external real-model run is claimed.
 
-The following architecture remains future work and must not be represented as
-complete: signed distribution and updates, MCP, RAG, evaluation and regression
-gates, cross-run comparison, multi-agent collaboration, and additional runtime
-adapters.
+The desktop UI is localized in Chinese for primary navigation, workflows,
+status labels, confirmations, empty/loading/error states, and validation
+messages. Protocol names, product names, technical identifiers, and model
+outputs remain unchanged where translation would reduce precision.
+
+Compare and Evaluation now form an implemented local workflow. Compare accepts
+two distinct terminal runs and reports normalized evidence and field-level
+differences. Evaluation supports immutable versioned datasets with one to 200
+cases, exact and regular-expression assertions, real run execution per case,
+per-case status and latency, batch pass-rate metrics, and an optional regression
+gate against a prior completed batch from the same dataset. The gate marks a
+regression only when the current pass rate is lower than the selected baseline.
+This narrower implemented contract does not yet include tool-argument
+assertions, citation checks, deterministic business-rule plugins, or calibrated
+LLM judges. Evidence is recorded in
+[`../../verification/compare-evaluation.md`](../../verification/compare-evaluation.md).
+
+The agent-platform milestone adds local MCP registration, discovery, and tool
+invocation; deterministic local knowledge ingestion with FTS5 BM25 lexical
+retrieval and citation evidence; bounded multi-agent delegation over explicitly
+authorized immutable agent versions; and Native, LangGraph, structured-output,
+and review runtime adapters. It also adds Authenticode inspection/signing,
+Tauri Minisign update-artifact verification, downgrade and tamper rejection,
+update installation controls, and a per-user MSI.
+
+The implemented knowledge path is lexical RAG, not embedding/vector semantic
+RAG. Multi-agent execution is supervisor/handoff-style model-directed
+delegation, not an arbitrary distributed group runtime. Production
+Authenticode credentials, production update keys, and an HTTPS update endpoint
+are intentionally supplied outside source control and are absent from this
+workspace. Production telemetry, hosted administration, commercial licensing,
+and operational support remain outside the engineering-preview boundary.
+Evidence is recorded in
+[`../../verification/agent-platform.md`](../../verification/agent-platform.md).
 
 ## 1. Product Goal
 
@@ -104,9 +134,12 @@ The React UI communicates with the sidecar through a versioned HTTP API and serv
 
 ### 4.2 Framework Isolation
 
-Each runtime adapter runs in its own isolated environment or container. The control plane does not import all Agent frameworks into a single Python process.
-
-The local development implementation uses managed `uv` environments keyed by adapter and version. A containerized runner mode can be added without changing the adapter protocol.
+The adapter contract separates framework-specific execution from the
+provider-neutral control plane. The current desktop build runs the Native and
+LangGraph adapters inside the sidecar process and exposes structured-output and
+review behavior as guarded adapter variants. Process-level or container-level
+framework isolation remains a future hardening step; the current implementation
+does not claim that isolation.
 
 ### 4.3 Data Storage
 
@@ -177,6 +210,11 @@ An evaluation dataset contains versioned cases. Each case has an input, optional
 
 Supported assertions include exact/schema output checks, tool selection, tool argument constraints, citation constraints, deterministic business rules, and calibrated LLM judges. Judge prompts and model versions are recorded with results.
 
+The current implementation supports exact output matching and regular
+expression matching. Schema checks, tool and argument assertions, citations,
+LLM judges, fixture isolation, and judge provenance are long-term targets rather
+than shipped capabilities.
+
 ## 6. Runtime Adapter Contract
 
 The adapter boundary supports:
@@ -190,7 +228,19 @@ The adapter boundary supports:
 - normalized event streaming
 - artifact and checkpoint ownership
 
-The first vertical slice implements the native adapter end to end. Later adapters are added only after they pass the same conformance suite.
+The implemented matrix contains:
+
+- `native`: the provider-neutral bounded tool loop, with optional review
+  behavior;
+- `langgraph`: a real LangGraph `StateGraph` with model/tool conditional
+  routing, cancellation, timeout, retry, and delegation support;
+- `structured`: native execution followed by JSON parsing and Draft 2020-12
+  schema validation;
+- `review`: native execution with the review execution mode enabled.
+
+Every adapter records its selected runtime in the run evidence. Framework
+checkpoints remain adapter-owned and are not represented as portable between
+adapters.
 
 ## 7. Information Architecture
 
@@ -276,17 +326,31 @@ The backend must never convert a partial or failed run into a successful state.
 - Run persistence, cancellation, lease recovery, and trace explorer.
 - Compare two runs.
 
+Status: implemented and verified for the local native runtime. The comparison
+surface consumes persisted run and event evidence; it does not claim
+cross-framework checkpoint equivalence.
+
 ### Vertical Slice 3
 
 - Evaluation cases, deterministic assertions, regression gate.
 - LangGraph adapter through the isolation protocol.
 - Export/import and diagnostic bundle.
 
+Status: versioned datasets, exact and regex assertions, real evaluation runs,
+metrics, per-case links, and pass-rate regression gates are implemented.
+The LangGraph adapter is implemented and verified through a real conditional
+tool loop in the packaged sidecar. Additional assertion types, export/import,
+and diagnostic bundles remain future work.
+
 ### Later
 
 - LlamaIndex, OpenAI Agents SDK, CrewAI, Google ADK, Microsoft Agent Framework, and PydanticAI adapters.
-- MCP and A2A interoperability.
-- Signed installer, updater, telemetry-free crash reports, and release documentation.
+- A2A interoperability.
+- Agent-to-agent federation and arbitrary group runtimes.
+- Production Authenticode credentials, production update signing keys, and an
+  HTTPS update service. The local signing and update-verification paths are
+  implemented and fail closed when those production inputs are absent.
+- Telemetry-free crash reporting and commercial operations.
 
 ## 13. Acceptance Criteria for the First Usable Build
 

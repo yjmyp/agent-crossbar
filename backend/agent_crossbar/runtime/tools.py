@@ -251,8 +251,8 @@ async def _text_stats(arguments: dict[str, Any]) -> str:
     return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
 
-def build_default_tool_registry() -> ToolRegistry:
-    definitions = (
+def default_tool_definitions() -> tuple[ToolDefinition, ...]:
+    return (
         ToolDefinition(
             name="calculator",
             description="Evaluate a bounded arithmetic expression without executable code.",
@@ -285,10 +285,18 @@ def build_default_tool_registry() -> ToolRegistry:
             },
         ),
     )
+
+
+def default_tool_executors() -> dict[str, ToolExecutor]:
+    return {
+        "calculator": _calculator,
+        "text_stats": _text_stats,
+    }
+
+
+def build_default_tool_registry() -> ToolRegistry:
+    definitions = default_tool_definitions()
     return ToolRegistry(
         definitions=definitions,
-        executors={
-            "calculator": _calculator,
-            "text_stats": _text_stats,
-        },
+        executors=default_tool_executors(),
     )

@@ -6,6 +6,7 @@ import {
   FlaskConical,
   GitCompareArrows,
   LayoutDashboard,
+  Network,
   Waypoints,
 } from "lucide-react";
 import clsx from "clsx";
@@ -18,13 +19,14 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { href: "/", label: "Command Center", icon: LayoutDashboard, section: "overview" },
-  { href: "/studio", label: "Agent Studio", icon: Bot, section: "studio" },
-  { href: "/runs", label: "Run Center", icon: Activity, section: "runs" },
-  { href: "/trace", label: "Trace Explorer", icon: Waypoints, section: "trace" },
-  { href: "/compare", label: "Compare", icon: GitCompareArrows, section: "compare" },
-  { href: "/evaluation", label: "Evaluation Lab", icon: FlaskConical, section: "evaluation" },
-  { href: "/registry", label: "Registry", icon: Blocks, section: "registry" },
+  { href: "/", label: "指挥中心", icon: LayoutDashboard, section: "overview" },
+  { href: "/studio", label: "智能体工作室", icon: Bot, section: "studio" },
+  { href: "/runs", label: "运行中心", icon: Activity, section: "runs" },
+  { href: "/trace", label: "轨迹浏览器", icon: Waypoints, section: "trace" },
+  { href: "/compare", label: "运行对比", icon: GitCompareArrows, section: "compare" },
+  { href: "/evaluation", label: "评测实验室", icon: FlaskConical, section: "evaluation" },
+  { href: "/registry", label: "能力注册中心", icon: Blocks, section: "registry" },
+  { href: "/workers", label: "私有执行节点", icon: Network, section: "workers" },
 ];
 
 export function Sidebar({
@@ -44,12 +46,12 @@ export function Sidebar({
         </span>
         <span className="brand__copy">
           <strong>Agent Crossbar</strong>
-          <small>Runtime control plane</small>
+          <small>智能体运行时控制台</small>
         </span>
       </div>
 
-      <nav className="primary-nav" aria-label="Primary navigation">
-        <p className="primary-nav__eyebrow">Workspace</p>
+      <nav className="primary-nav" aria-label="主导航">
+        <p className="primary-nav__eyebrow">工作区</p>
         {navigation.map((item) => {
           const Icon = item.icon;
           const active = item.section === currentSection;
@@ -66,9 +68,6 @@ export function Sidebar({
             >
               <Icon size={17} strokeWidth={1.8} />
               <span>{item.label}</span>
-              {["compare", "evaluation"].includes(item.section) ? (
-                <span className="nav-item__phase">Next</span>
-              ) : null}
             </a>
           );
         })}
@@ -80,8 +79,8 @@ export function Sidebar({
             <ChartNoAxesColumnIncreasing size={15} />
           </span>
           <span>
-            <strong>Local workspace</strong>
-            <small>v0.1 foundation</small>
+            <strong>本地工作区</strong>
+            <small>v0.1 基础版本</small>
           </span>
         </button>
       </div>

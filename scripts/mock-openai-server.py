@@ -38,6 +38,151 @@ class Handler(BaseHTTPRequestHandler):
             self._write_json(400, {"error": {"message": "messages are required"}})
             return
 
+        messages = payload["messages"]
+        tools = payload.get("tools")
+        if os.environ.get("AGENT_CROSSBAR_TEST_KNOWLEDGE") == "1" and isinstance(
+            tools, list
+        ):
+            knowledge_tool = next(
+                (
+                    tool
+                    for tool in tools
+                    if isinstance(tool, dict)
+                    and isinstance(tool.get("function"), dict)
+                    and tool["function"].get("name") == "knowledge_search"
+                ),
+                None,
+            )
+            if knowledge_tool is not None:
+                tool_results = [
+                    message
+                    for message in messages
+                    if isinstance(message, dict) and message.get("role") == "tool"
+                ]
+                if not tool_results:
+                    self._write_json(
+                        200,
+                        {
+                            "choices": [
+                                {
+                                    "message": {
+                                        "role": "assistant",
+                                        "content": None,
+                                        "tool_calls": [
+                                            {
+                                                "id": "call_knowledge_search",
+                                                "type": "function",
+                                                "function": {
+                                                    "name": "knowledge_search",
+                                                    "arguments": (
+                                                        '{"query":"发布会话","limit":3}'
+                                                    ),
+                                                },
+                                            }
+                                        ],
+                                    },
+                                    "finish_reason": "tool_calls",
+                                }
+                            ],
+                            "usage": {
+                                "prompt_tokens": 10,
+                                "completion_tokens": 5,
+                            },
+                        },
+                    )
+                    return
+
+                tool_content = str(tool_results[-1].get("content", ""))
+                self._write_json(
+                    200,
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "role": "assistant",
+                                    "content": f"知识库回答：{tool_content}",
+                                },
+                                "finish_reason": "stop",
+                            }
+                        ],
+                        "usage": {
+                            "prompt_tokens": 15,
+                            "completion_tokens": 8,
+                        },
+                    },
+                )
+                return
+
+        if os.environ.get("AGENT_CROSSBAR_TEST_MCP_TOOL") == "1" and isinstance(tools, list):
+            mcp_tool = next(
+                (
+                    tool
+                    for tool in tools
+                    if isinstance(tool, dict)
+                    and isinstance(tool.get("function"), dict)
+                    and str(tool["function"].get("name", "")).startswith("mcp.")
+                ),
+                None,
+            )
+            if mcp_tool is not None:
+                tool_name = mcp_tool["function"]["name"]
+                tool_results = [
+                    message
+                    for message in messages
+                    if isinstance(message, dict) and message.get("role") == "tool"
+                ]
+                if not tool_results:
+                    self._write_json(
+                        200,
+                        {
+                            "choices": [
+                                {
+                                    "message": {
+                                        "role": "assistant",
+                                        "content": None,
+                                        "tool_calls": [
+                                            {
+                                                "id": "call_mcp_echo",
+                                                "type": "function",
+                                                "function": {
+                                                    "name": tool_name,
+                                                    "arguments": '{"value":"你好"}',
+                                                },
+                                            }
+                                        ],
+                                    },
+                                    "finish_reason": "tool_calls",
+                                }
+                            ],
+                            "usage": {
+                                "prompt_tokens": 8,
+                                "completion_tokens": 4,
+                            },
+                        },
+                    )
+                    return
+
+                tool_content = str(tool_results[-1].get("content", ""))
+                self._write_json(
+                    200,
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "role": "assistant",
+                                    "content": f"MCP result: {tool_content}",
+                                },
+                                "finish_reason": "stop",
+                            }
+                        ],
+                        "usage": {
+                            "prompt_tokens": 12,
+                            "completion_tokens": 6,
+                        },
+                    },
+                )
+                return
+
         self._write_json(
             200,
             {

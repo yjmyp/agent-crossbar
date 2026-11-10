@@ -10,6 +10,7 @@ import {
 import type { Bridge, RunRecord, RunStatus } from "../lib/bridge";
 import { errorMessage } from "../lib/errors";
 import { formatDuration, formatRelativeTime, shortId } from "../lib/format";
+import { runStatusLabel } from "../lib/localization";
 import { PageHeader } from "../components/layout/PageHeader";
 import { Button } from "../components/ui/Button";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
@@ -17,10 +18,10 @@ import { StatusBadge } from "../components/ui/StatusBadge";
 import { runStatusTone } from "../components/ui/statusTone";
 
 const filters: Array<{ label: string; value: "all" | RunStatus }> = [
-  { label: "All", value: "all" },
-  { label: "Active", value: "running" },
-  { label: "Completed", value: "completed" },
-  { label: "Failed", value: "failed" },
+  { label: "全部", value: "all" },
+  { label: "活跃", value: "running" },
+  { label: "已完成", value: "completed" },
+  { label: "失败", value: "failed" },
 ];
 
 export function RunCenterPage({
@@ -79,23 +80,23 @@ export function RunCenterPage({
   return (
     <div className="page page--runs">
       <PageHeader
-        eyebrow="Observe"
-        title="Run Center"
-        description="Monitor durable executions, inspect their state, and open the full event trace."
+        eyebrow="观测"
+        title="运行中心"
+        description="监控持久化执行，检查运行状态，并打开完整事件轨迹。"
         actions={
           <Button tone="secondary" onClick={reload}>
             <RefreshCw size={14} aria-hidden="true" />
-            Refresh
+            刷新
           </Button>
         }
       />
 
       <section className="panel run-center-panel">
         <div className="run-toolbar">
-          <div className="segmented-control" aria-label="Filter runs by status">
+          <div className="segmented-control" aria-label="按状态筛选运行">
             <span className="segmented-control__label">
               <Filter size={13} aria-hidden="true" />
-              Status
+              状态
             </span>
             {filters.map((item) => (
               <button
@@ -111,16 +112,16 @@ export function RunCenterPage({
           </div>
           <label className="search-field">
             <Search size={14} aria-hidden="true" />
-            <span className="sr-only">Search runs</span>
+            <span className="sr-only">搜索运行</span>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search run ID or input"
+              placeholder="搜索运行 ID 或输入"
             />
           </label>
         </div>
 
-        {loading ? <LoadingState label="Reading run history" /> : null}
+        {loading ? <LoadingState label="正在读取运行历史" /> : null}
         {error ? (
           <ErrorState
             message={error}
@@ -129,19 +130,19 @@ export function RunCenterPage({
         ) : null}
         {!loading && !error && runs.length === 0 ? (
           <EmptyState
-            title="No runs in this workspace"
-            description="Define an agent and launch the first task. Stored runs survive application restarts."
+            title="当前工作区还没有运行记录"
+            description="定义智能体并启动第一个任务。保存的运行在应用重启后仍然存在。"
             action={
               <Button tone="primary" onClick={() => navigate("/studio")}>
-                Create an agent
+                创建智能体
               </Button>
             }
           />
         ) : null}
         {!loading && !error && runs.length > 0 && visibleRuns.length === 0 ? (
           <EmptyState
-            title="No runs match this view"
-            description="Clear the search or choose a different status filter."
+            title="没有符合当前条件的运行"
+            description="清除搜索内容，或选择其他状态筛选条件。"
             icon={<ListFilter size={21} aria-hidden="true" />}
           />
         ) : null}
@@ -150,12 +151,12 @@ export function RunCenterPage({
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Run</th>
-                  <th>Input</th>
-                  <th>Status</th>
-                  <th>Duration</th>
-                  <th>Started</th>
-                  <th aria-label="Open run" />
+                  <th>运行</th>
+                  <th>输入</th>
+                  <th>状态</th>
+                  <th>耗时</th>
+                  <th>开始时间</th>
+                  <th aria-label="打开运行" />
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +181,7 @@ export function RunCenterPage({
                     </td>
                     <td>
                       <StatusBadge tone={runStatusTone(run.status)} dot>
-                        {run.status}
+                        {runStatusLabel(run.status)}
                       </StatusBadge>
                     </td>
                     <td>

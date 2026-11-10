@@ -21,6 +21,11 @@ src-tauri/gen/
 test-results/
 playwright-report/
 .playwright-cli/
+pytest-of-*/
+tmp/
+.claude/
+.codex/
+.codojo/
 output/
 *.log
 .build/

@@ -10,6 +10,12 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-02-agent-crossbar-design.md`
 
+**Acceptance status:** the implementation and evidence in this plan were
+completed on 2026-11-03. This plan remains the execution-core milestone record;
+the current MCP, lexical RAG, multi-agent, adapter, signing, updater, and MSI
+status is superseding evidence in
+`docs/verification/agent-platform.md`.
+
 ## Global Constraints
 
 - The installed product remains a Windows desktop application.
@@ -460,7 +466,8 @@ git commit -m "feat: configure providers and tools in Agent Studio"
 **Interfaces:**
 - Produces: offline packaged proof of one real tool call using a deterministic test provider
 - Documents: exact commands and evidence for an optional real-provider check
-- Documents: secrets are environment-provided in this slice and OS-vault management remains future work
+- Documents: secrets were environment-provided in this historical slice; OS-vault
+  management was implemented by the subsequent secure-provider milestone
 
 - [x] **Step 1: Add a deterministic tool-call smoke profile**
 
@@ -500,16 +507,19 @@ calculation request through the packaged sidecar. Record the provider profile,
 model identifier, run ID, normalized sequence count, terminal status, and output.
 If credentials are absent, record the check as not run; do not synthesize evidence.
 
-- [x] **Step 5: Document actual evidence and limitations**
+- [x] **Step 5: Document milestone evidence and current limitations**
 
 Update the verification record with commands, pass counts, tool-event ordering,
-package hash, and any not-run real-model checks. Keep OS credential-vault management,
-signed distribution, MCP, RAG, evaluation, and comparison explicitly outside this
-slice.
+package hash, and any not-run real-model checks. Preserve the execution-core
+scope in this historical milestone record, and point readers to the superseding
+platform evidence for later OS credential-vault, signed distribution, MCP,
+lexical RAG, evaluation, comparison, multi-agent, and adapter work.
 
-- [x] **Step 6: Commit**
+- [x] **Step 6: Finalize the workspace without commit under the explicit task constraint**
 
 ```powershell
-git add scripts/smoke-sidecar.ps1 docs/verification/execution-core.md README.md docs/superpowers/specs/2026-11-02-agent-crossbar-design.md
-git commit -m "test: verify the multi-turn execution core"
+git status --short
 ```
+
+The changes are intentionally left uncommitted in the shared workspace. No
+commit or push was performed.

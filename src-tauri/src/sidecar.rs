@@ -166,7 +166,14 @@ fn sidecar_command(
     std::fs::create_dir_all(&runtime_temp)
         .map_err(|error| format!("Could not prepare the local runtime directory: {error}"))?;
     let runtime_temp = runtime_temp.to_string_lossy().to_string();
-    let provider_environment = provider_environment_for_launch(credentials::sidecar_environment());
+    let mut provider_environment =
+        provider_environment_for_launch(credentials::sidecar_environment());
+    provider_environment.extend(provider_environment_for_launch(
+        credentials::embedding_sidecar_environment(),
+    ));
+    provider_environment.extend(worker_inbound_environment(
+        std::env::var("AGENT_CROSSBAR_WORKER_INBOUND_TOKEN").ok(),
+    )?);
 
     #[cfg(debug_assertions)]
     {
@@ -226,6 +233,25 @@ fn provider_environment_for_launch(
     }
 }
 
+fn worker_inbound_environment(configured: Option<String>) -> Result<Vec<(String, String)>, String> {
+    let Some(value) = configured else {
+        return Ok(Vec::new());
+    };
+    let token = value.trim();
+    if token.is_empty() {
+        return Ok(Vec::new());
+    }
+    if token.chars().count() < 32 {
+        return Err(
+            "AGENT_CROSSBAR_WORKER_INBOUND_TOKEN must contain at least 32 characters.".to_string(),
+        );
+    }
+    Ok(vec![(
+        "AGENT_CROSSBAR_WORKER_INBOUND_TOKEN".to_string(),
+        token.to_string(),
+    )])
+}
+
 #[tauri::command]
 pub async fn app_ready(state: State<'_, ServiceState>) -> Result<AppConnection, String> {
     let mut receiver = state.snapshot_tx.subscribe();
@@ -255,7 +281,7 @@ struct Handshake {
 
 #[cfg(test)]
 mod tests {
-    use super::provider_environment_for_launch;
+    use super::{provider_environment_for_launch, worker_inbound_environment};
 
     #[test]
     fn sidecar_launch_uses_valid_stored_provider_environment() {
@@ -279,5 +305,36 @@ mod tests {
             provider_environment_for_launch(Err("stored connection is invalid".to_string()));
 
         assert!(environment.is_empty());
+    }
+
+    #[test]
+    fn sidecar_launch_forwards_a_configured_worker_inbound_token_through_environment() {
+        let environment = worker_inbound_environment(Some("w".repeat(40))).unwrap();
+
+        assert_eq!(
+            environment,
+            vec![(
+                "AGENT_CROSSBAR_WORKER_INBOUND_TOKEN".to_string(),
+                "w".repeat(40),
+            )]
+        );
+    }
+
+    #[test]
+    fn sidecar_launch_never_fabricates_a_missing_worker_inbound_token() {
+        assert!(worker_inbound_environment(None).unwrap().is_empty());
+        assert!(
+            worker_inbound_environment(Some("   ".to_string()))
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn sidecar_launch_rejects_a_short_worker_inbound_token_without_echoing_it() {
+        let error = worker_inbound_environment(Some("too-short".to_string())).unwrap_err();
+
+        assert!(error.contains("32"));
+        assert!(!error.contains("too-short"));
     }
 }

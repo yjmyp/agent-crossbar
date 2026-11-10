@@ -9,6 +9,7 @@ import socket
 import sys
 import threading
 import time
+from collections.abc import Mapping
 from pathlib import Path
 
 import uvicorn
@@ -41,12 +42,7 @@ def main(arguments: list[str] | None = None) -> None:
     listener.set_inheritable(True)
     port = int(listener.getsockname()[1])
 
-    app = create_app(
-        AppSettings(
-            database_path=options.database,
-            launch_token=options.token,
-        )
-    )
+    app = create_app(create_app_settings(options, os.environ))
     server = uvicorn.Server(
         uvicorn.Config(
             app,
@@ -77,6 +73,24 @@ def _launch_token(value: str) -> str:
     if len(value) < 32:
         raise argparse.ArgumentTypeError("launch token must contain at least 32 characters")
     return value
+
+
+def create_app_settings(
+    options: argparse.Namespace,
+    environment: Mapping[str, str],
+) -> AppSettings:
+    worker_inbound_token = environment.get("AGENT_CROSSBAR_WORKER_INBOUND_TOKEN")
+    if worker_inbound_token is not None:
+        worker_inbound_token = worker_inbound_token.strip()
+        if len(worker_inbound_token) < 32:
+            raise ValueError(
+                "AGENT_CROSSBAR_WORKER_INBOUND_TOKEN must contain at least 32 characters"
+            )
+    return AppSettings(
+        database_path=options.database,
+        launch_token=options.token,
+        worker_inbound_token=worker_inbound_token,
+    )
 
 
 def _port(value: str) -> int:

@@ -12,15 +12,15 @@ export function TopBar({
 }) {
   const serviceLabel =
     serviceState === "online"
-      ? "Local service online"
+      ? "本地服务在线"
       : serviceState === "offline"
-        ? "Local service offline"
-        : "Checking local service";
+        ? "本地服务离线"
+        : "正在检查本地服务";
 
   return (
     <header className="topbar">
       <div className="topbar__title">
-        <span>Workspace</span>
+        <span>工作区</span>
         <strong>{title}</strong>
       </div>
       <div className="topbar__actions">
@@ -38,13 +38,13 @@ export function TopBar({
         </StatusBadge>
         <span className="topbar__security">
           <ShieldCheck size={14} aria-hidden="true" />
-          Loopback only
+          仅限本机回环
         </span>
-        <button type="button" className="icon-button" aria-label="Keyboard shortcuts">
+        <button type="button" className="icon-button" aria-label="键盘快捷键">
           <Command size={16} />
           <kbd>K</kbd>
         </button>
-        <button type="button" className="icon-button icon-button--plain" aria-label="Help">
+        <button type="button" className="icon-button icon-button--plain" aria-label="帮助">
           <CircleHelp size={17} />
         </button>
       </div>

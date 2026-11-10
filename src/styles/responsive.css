@@ -59,6 +59,18 @@
     flex-direction: column;
     gap: 16px;
   }
+
+  .evaluation-top-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .evaluation-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compare-outputs {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -148,6 +160,77 @@
   .roadmap-panel__line {
     gap: 30px;
     width: 96%;
+  }
+
+  .compare-picker__body,
+  .compare-summary,
+  .compare-signals__grid,
+  .evaluation-editor__fields,
+  .evaluation-case__grid,
+  .evaluation-dataset-list {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-picker__direction {
+    width: 37px;
+    height: 24px;
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+
+  .compare-summary__divider {
+    height: 36px;
+  }
+
+  .compare-summary__divider::before,
+  .compare-summary__divider::after {
+    top: 50%;
+    bottom: auto;
+    width: calc(50% - 18px);
+    height: 1px;
+  }
+
+  .compare-summary__divider::before {
+    right: auto;
+    left: 0;
+  }
+
+  .compare-summary__divider::after {
+    right: 0;
+    left: auto;
+  }
+
+  .evaluation-editor__fields,
+  .evaluation-cases,
+  .evaluation-launcher__body,
+  .evaluation-dataset-list,
+  .evaluation-batch-list {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .evaluation-editor__footer,
+  .evaluation-batch-card__header,
+  .evaluation-batch-card__actions,
+  .evaluation-delete-confirm,
+  .evaluation-result-row__heading,
+  .evaluation-result-row__facts {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .evaluation-editor__footer .button,
+  .evaluation-delete-confirm .button,
+  .evaluation-batch-card__actions .button {
+    width: 100%;
+  }
+
+  .evaluation-batch-card__status {
+    flex-wrap: wrap;
+  }
+
+  .evaluation-metrics {
+    grid-template-columns: 1fr;
   }
 }
 

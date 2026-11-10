@@ -61,7 +61,7 @@ def test_digest_changes_when_behavior_changes() -> None:
 def test_digest_has_stable_sha256_format() -> None:
     digest = make_spec().digest()
 
-    assert digest == "sha256:5197bc902bdf0fa6e5ffd4bb22cf8b89a7deddaab0b479aaac3d9c46c072ffbf"
+    assert digest == "sha256:cb9741275e1e7106da951e821a4848d8b5bf6787b37e81e0954bb206b3297c4e"
 
 
 def test_applies_safe_execution_defaults() -> None:
@@ -94,6 +94,14 @@ def test_rejects_unknown_fields() -> None:
             instructions="Find facts.",
             api_key="must-not-be-here",
         )
+
+
+@pytest.mark.parametrize("mode", ["handoff", "group"])
+def test_rejects_collaboration_modes_without_distinct_runtime_semantics(
+    mode: str,
+) -> None:
+    with pytest.raises(ValidationError):
+        CollaborationPolicy(mode=mode, max_agents=2)
 
 
 def test_round_trips_through_canonical_json() -> None:

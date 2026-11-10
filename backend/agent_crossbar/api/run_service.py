@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import suppress
+from typing import Any
 
 from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType
 from agent_crossbar.domain.spec import AgentSpec
@@ -26,21 +27,52 @@ class RunExecutor:
         self._runtime_factory = runtime_factory
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._cancel_events: dict[str, asyncio.Event] = {}
+        self._done_events: dict[str, asyncio.Event] = {}
+        self._semaphores: dict[tuple[str, str], asyncio.Semaphore] = {}
 
-    def submit(self, run: RunRecord, spec: AgentSpec) -> None:
+    def submit(
+        self,
+        run: RunRecord,
+        spec: AgentSpec,
+        *,
+        initial_event_payload: Mapping[str, Any] | None = None,
+    ) -> None:
         cancel_event = asyncio.Event()
         self._cancel_events[run.run_id] = cancel_event
+        self._done_events[run.run_id] = asyncio.Event()
         task = asyncio.create_task(
-            self._execute(run, spec, cancel_event),
+            self._execute(
+                run,
+                spec,
+                cancel_event,
+                initial_event_payload=initial_event_payload,
+            ),
             name=f"agent-run-{run.run_id}",
         )
         self._tasks[run.run_id] = task
         task.add_done_callback(lambda _task: self._tasks.pop(run.run_id, None))
 
     async def cancel(self, run_id: str) -> None:
-        cancel_event = self._cancel_events.get(run_id)
-        if cancel_event is not None:
-            cancel_event.set()
+        targets = self._run_store.list_subtree(run_id)
+        for target in targets:
+            cancel_event = self._cancel_events.get(target.run_id)
+            if cancel_event is not None:
+                cancel_event.set()
+
+    async def wait(self, run_id: str) -> RunRecord:
+        run = self._run_store.get(run_id)
+        if run.status in {
+            RunStatus.COMPLETED,
+            RunStatus.FAILED,
+            RunStatus.CANCELLED,
+            RunStatus.INTERRUPTED,
+        }:
+            return run
+        done_event = self._done_events.get(run_id)
+        if done_event is None:
+            return self._run_store.get(run_id)
+        await done_event.wait()
+        return self._run_store.get(run_id)
 
     async def shutdown(self) -> None:
         for cancel_event in self._cancel_events.values():
@@ -62,28 +94,49 @@ class RunExecutor:
         run: RunRecord,
         spec: AgentSpec,
         cancel_event: asyncio.Event,
+        *,
+        initial_event_payload: Mapping[str, Any] | None = None,
     ) -> None:
         terminal_status: RunStatus | None = None
         output: str | None = None
         error: dict[str, object] | None = None
         try:
             self._run_store.mark_running(run.run_id)
-            runtime = self._runtime_factory(spec)
-            request = RuntimeRequest(
-                run_id=run.run_id,
-                spec=spec,
-                input=run.input_text,
-                cancel_event=cancel_event,
-            )
-            async for event in _iterate(runtime.execute(request)):
-                self._run_store.append_event(run.run_id, event)
-                if event.type in _TERMINAL_STATUS_BY_EVENT:
-                    terminal_status = _TERMINAL_STATUS_BY_EVENT[event.type]
-                    if event.type == RuntimeEventType.RUN_COMPLETED:
-                        output = str(event.payload.get("output", ""))
-                    if event.type == RuntimeEventType.RUN_FAILED:
-                        raw_error = event.payload.get("error", {})
-                        error = raw_error if isinstance(raw_error, dict) else {"message": raw_error}
+            semaphore = self._semaphore_for(run, spec)
+            async with semaphore:
+                runtime = self._runtime_factory(spec)
+                request = RuntimeRequest(
+                    run_id=run.run_id,
+                    spec=spec,
+                    input=run.input_text,
+                    cancel_event=cancel_event,
+                )
+                async for event in _iterate(runtime.execute(request)):
+                    if (
+                        initial_event_payload
+                        and event.type == RuntimeEventType.RUN_STARTED
+                    ):
+                        event = event.model_copy(
+                            update={
+                                "payload": {
+                                    **event.payload,
+                                    **initial_event_payload,
+                                }
+                            }
+                        )
+                        initial_event_payload = None
+                    self._run_store.append_event(run.run_id, event)
+                    if event.type in _TERMINAL_STATUS_BY_EVENT:
+                        terminal_status = _TERMINAL_STATUS_BY_EVENT[event.type]
+                        if event.type == RuntimeEventType.RUN_COMPLETED:
+                            output = str(event.payload.get("output", ""))
+                        if event.type == RuntimeEventType.RUN_FAILED:
+                            raw_error = event.payload.get("error", {})
+                            error = (
+                                raw_error
+                                if isinstance(raw_error, dict)
+                                else {"message": raw_error}
+                            )
         except asyncio.CancelledError:
             terminal_status = RunStatus.CANCELLED
             self._append_fallback_terminal(
@@ -119,6 +172,17 @@ class RunExecutor:
                     output=output,
                     error=error,
                 )
+            done_event = self._done_events.pop(run.run_id, None)
+            if done_event is not None:
+                done_event.set()
+
+    def _semaphore_for(self, run: RunRecord, spec: AgentSpec) -> asyncio.Semaphore:
+        key = (run.agent_id, run.spec_version)
+        semaphore = self._semaphores.get(key)
+        if semaphore is None:
+            semaphore = asyncio.Semaphore(spec.execution.max_concurrency)
+            self._semaphores[key] = semaphore
+        return semaphore
 
     def _append_fallback_terminal(
         self,

@@ -1,0 +1,199 @@
+<?if $(sys.BUILDARCH)="x86"?>
+    <?define Win64 = "no" ?>
+<?elseif $(sys.BUILDARCH)="x64"?>
+    <?define Win64 = "yes" ?>
+<?elseif $(sys.BUILDARCH)="arm64"?>
+    <?define Win64 = "yes" ?>
+<?else?>
+    <?error Unsupported value of sys.BUILDARCH=$(sys.BUILDARCH)?>
+<?endif?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product
+            Id="*"
+            Name="{{product_name}}"
+            UpgradeCode="{{upgrade_code}}"
+            Language="!(loc.TauriLanguage)"
+            Manufacturer="{{manufacturer}}"
+            Version="{{version}}">
+
+        <Package
+                Id="*"
+                Keywords="Installer"
+                InstallerVersion="500"
+                Languages="0"
+                Compressed="yes"
+                InstallScope="perUser"
+                InstallPrivileges="limited"
+                SummaryCodepage="!(loc.TauriCodepage)" />
+
+        <Property Id="REINSTALLMODE" Value="amus" />
+        <Property Id="AUTOLAUNCHAPP" Secure="yes" />
+        <Property Id="LAUNCHAPPARGS" Secure="yes" />
+        <Property Id="ARPCOMMENTS" Value="Agent Crossbar engineering preview" />
+        <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
+        <SetProperty Id="ARPNOMODIFY" Value="1" After="InstallValidate" Sequence="execute" />
+
+        <MajorUpgrade
+                Schedule="afterInstallInitialize"
+                DowngradeErrorMessage="!(loc.DowngradeErrorMessage)"
+                AllowSameVersionUpgrades="yes" />
+
+        <Media Id="1" Cabinet="app.cab" EmbedCab="yes" />
+
+        <Icon Id="ProductIcon" SourceFile="{{icon_path}}" />
+        <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+
+        <Property Id="INSTALLDIR">
+            <RegistrySearch
+                    Id="PreviousInstallDir"
+                    Root="HKCU"
+                    Key="Software\AgentCrossbar\Installer"
+                    Name="InstallDir"
+                    Type="raw" />
+        </Property>
+
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+        <UIRef Id="WixUI_InstallDir" />
+        <CustomAction
+                Id="LaunchApplication"
+                Impersonate="yes"
+                FileKey="Path"
+                ExeCommand="[LAUNCHAPPARGS]"
+                Return="asyncNoWait" />
+
+        <UI>
+            <Publish
+                    Dialog="ExitDialog"
+                    Control="Finish"
+                    Event="DoAction"
+                    Value="LaunchApplication">
+                WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed
+            </Publish>
+            <Publish
+                    Dialog="WelcomeDlg"
+                    Control="Next"
+                    Event="NewDialog"
+                    Value="InstallDirDlg"
+                    Order="2">1</Publish>
+            <Publish
+                    Dialog="InstallDirDlg"
+                    Control="Back"
+                    Event="NewDialog"
+                    Value="WelcomeDlg"
+                    Order="2">1</Publish>
+        </UI>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="{{product_name}}" />
+            </Directory>
+            <!-- Per-user installation never writes to Program Files and never needs elevation. -->
+            <Directory Id="LocalAppDataFolder">
+                <Directory Id="ProgramsFolder" Name="Programs">
+                    <Directory Id="INSTALLDIR" Name="{{product_name}}" />
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <DirectoryRef Id="INSTALLDIR">
+            <Component Id="RegistryEntries" Guid="*">
+                <RegistryKey Root="HKCU" Key="Software\AgentCrossbar\Installer">
+                    <RegistryValue Name="InstallDir" Type="string" Value="[INSTALLDIR]" KeyPath="yes" />
+                </RegistryKey>
+                <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+            </Component>
+
+            <Component Id="Path" Guid="{{path_component_guid}}" Win64="$(var.Win64)">
+                <File Id="Path" Source="{{main_binary_path}}" Checksum="yes" />
+                <RegistryValue
+                        Root="HKCU"
+                        Key="Software\AgentCrossbar\Installer\Components"
+                        Name="Desktop"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+            </Component>
+
+            {{#each binaries as |bin| ~}}
+            <Component Id="{{bin.id}}" Guid="{{bin.guid}}" Win64="$(var.Win64)">
+                <File Id="Bin_{{bin.id}}" Source="{{bin.path}}" />
+                <RegistryValue
+                        Root="HKCU"
+                        Key="Software\AgentCrossbar\Installer\Components"
+                        Name="{{bin.id}}"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+            </Component>
+            {{/each~}}
+
+            <Component Id="CMP_UninstallShortcut" Guid="*">
+                <Shortcut
+                        Id="UninstallShortcut"
+                        Name="Uninstall {{product_name}}"
+                        Description="Uninstall {{product_name}} from this user account"
+                        Target="[SystemFolder]msiexec.exe"
+                        Arguments="/x [ProductCode]" />
+                <RemoveFolder Id="INSTALLDIR" On="uninstall" />
+                <RegistryValue
+                        Root="HKCU"
+                        Key="Software\AgentCrossbar\Installer"
+                        Name="Uninstaller Shortcut"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="*">
+                <Shortcut
+                        Id="ApplicationStartMenuShortcut"
+                        Name="{{product_name}}"
+                        Description="Launch {{product_name}}"
+                        Target="[!Path]"
+                        Icon="ProductIcon"
+                        WorkingDirectory="INSTALLDIR">
+                    <ShortcutProperty Key="System.AppUserModel.ID" Value="{{bundle_id}}" />
+                </Shortcut>
+                <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+                <RegistryValue
+                        Root="HKCU"
+                        Key="Software\AgentCrossbar\Installer"
+                        Name="Start Menu Shortcut"
+                        Type="integer"
+                        Value="1"
+                        KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <Feature
+                Id="MainProgram"
+                Title="Agent Crossbar"
+                Description="Install Agent Crossbar for the current user."
+                Level="1"
+                ConfigurableDirectory="INSTALLDIR"
+                AllowAdvertise="no"
+                Display="expand"
+                Absent="disallow">
+            <ComponentRef Id="RegistryEntries" />
+            <ComponentRef Id="Path" />
+            {{#each binaries as |bin| ~}}
+            <ComponentRef Id="{{bin.id}}" />
+            {{/each~}}
+            <ComponentRef Id="CMP_UninstallShortcut" />
+            <ComponentRef Id="ApplicationShortcut" />
+        </Feature>
+
+        <InstallExecuteSequence>
+            <Custom Action="LaunchApplication" After="InstallFinalize">
+                AUTOLAUNCHAPP AND NOT Installed
+            </Custom>
+        </InstallExecuteSequence>
+
+        <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLDIR]" After="CostFinalize" />
+    </Product>
+</Wix>

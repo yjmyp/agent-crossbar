@@ -10,6 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-02-agent-crossbar-design.md`
 
+**Status:** implementation and acceptance complete on 2026-11-03. The work was
+intentionally left uncommitted in the shared workspace. Latest evidence is in
+`docs/verification/agent-platform.md`; the milestone-specific record remains in
+`docs/verification/compare-evaluation.md`.
+
 ## Global Constraints
 
 - Windows 原生 Tauri 桌面应用是唯一主要交付形态。
@@ -34,11 +39,11 @@
 - Consumes: `RunStore.get(run_id)`, `RunStore.list_events(run_id)`, `SpecStore.get(agent_id, version)`
 - Produces: `GET /v1/compare?left_run_id=<id>&right_run_id=<id>`，返回两个运行摘要、相同点和差异点。
 
-- [ ] 写 API 测试，验证运行不存在、禁止自比较、事件统计与工具差异。
-- [ ] 运行测试并确认失败。
-- [ ] 实现纯函数 `build_run_comparison` 与路由。
-- [ ] 运行测试并确认通过。
-- [ ] 提交领域服务。
+- [x] 写 API 测试，验证运行不存在、禁止自比较、事件统计与工具差异。
+- [x] 运行测试并确认失败。
+- [x] 实现纯函数 `build_run_comparison` 与路由。
+- [x] 运行测试并确认通过。
+- [x] 完成领域服务，并按工作区约束保持未提交。
 
 ### Task 2: 评测数据模型与 migration
 
@@ -54,11 +59,11 @@
 - 结果状态：`pending`、`running`、`passed`、`failed`、`error`。
 - `EvaluationStore.create_dataset`、`get_dataset`、`list_datasets`、`create_batch`、`get_batch`、`list_batches`、`update_case_result`、`finish_batch`。
 
-- [ ] 写 migration/reopen 与状态转换测试。
-- [ ] 运行测试并确认失败。
-- [ ] 实现 Pydantic 模型、JSON 校验与 SQLite store。
-- [ ] 运行测试并确认通过。
-- [ ] 提交持久化层。
+- [x] 写 migration/reopen 与状态转换测试。
+- [x] 运行测试并确认失败。
+- [x] 实现 Pydantic 模型、JSON 校验与 SQLite store。
+- [x] 运行测试并确认通过。
+- [x] 完成持久化层，并按工作区约束保持未提交。
 
 ### Task 3: 批量评测执行与回归门禁
 
@@ -73,11 +78,11 @@
 - 创建批次后逐例启动真实运行，等待终止后按断言评分。
 - 批次指标：通过率、错误率、平均延迟、相对基线通过率差与 `pass`/`regression` 门禁。
 
-- [ ] 写集成测试覆盖数据集 CRUD、批量执行、正则断言、失败原因和回归判定。
-- [ ] 运行测试并确认失败。
-- [ ] 实现 API 与执行状态机。
-- [ ] 运行测试并确认通过。
-- [ ] 提交评测执行闭环。
+- [x] 写集成测试覆盖数据集 CRUD、批量执行、正则断言、失败原因和回归判定。
+- [x] 运行测试并确认失败。
+- [x] 实现 API 与执行状态机。
+- [x] 运行测试并确认通过。
+- [x] 完成评测执行闭环，并按工作区约束保持未提交。
 
 ### Task 4: 前端 Compare 工作区
 
@@ -87,10 +92,10 @@
 - Modify: `src/lib/bridge.ts`
 - Modify: `src/test/fakeBridge.ts`
 
-- [ ] 写组件测试覆盖双运行选择、摘要、差异和同运行拦截。
-- [ ] 实现页面与响应式并列布局。
-- [ ] 运行预期失败再实现，最后确认通过。
-- [ ] 提交 Compare 页面。
+- [x] 写组件测试覆盖双运行选择、摘要、差异和同运行拦截。
+- [x] 实现页面与响应式并列布局。
+- [x] 运行预期失败再实现，最后确认通过。
+- [x] 完成 Compare 页面，并按工作区约束保持未提交。
 
 ### Task 5: 前端 Evaluation Lab
 
@@ -100,10 +105,10 @@
 - Modify: `src/lib/bridge.ts`
 - Modify: `src/test/fakeBridge.ts`
 
-- [ ] 写组件测试覆盖数据集创建、批次启动、结果表与回归门禁。
-- [ ] 实现页面、表单校验、状态轮询和失败用例展开。
-- [ ] 运行预期失败再实现，最后确认通过。
-- [ ] 提交 Evaluation Lab。
+- [x] 写组件测试覆盖数据集创建、批次启动、结果表与回归门禁。
+- [x] 实现页面、表单校验、状态轮询和失败用例展开。
+- [x] 运行预期失败再实现，最后确认通过。
+- [x] 完成 Evaluation Lab，并按工作区约束保持未提交。
 
 ### Task 6: 全界面中文化
 
@@ -115,11 +120,11 @@
 - Modify: `src/lib/errors.ts`
 - Modify: `src/**/*.test.tsx`
 
-- [ ] 把导航、标题、说明、按钮、空态、错误、状态与时间文案改为中文。
-- [ ] 保留技术标识和协议名，将可读状态另设中文展示。
-- [ ] 更新测试选择器，使用角色、标签和中文可见文案定位。
-- [ ] 运行前端测试、类型检查、lint 与生产构建。
-- [ ] 提交中文化。
+- [x] 把导航、标题、说明、按钮、空态、错误、状态与时间文案改为中文。
+- [x] 保留技术标识和协议名，将可读状态另设中文展示。
+- [x] 更新测试选择器，使用角色、标签和中文可见文案定位。
+- [x] 运行前端测试、类型检查、lint 与生产构建。
+- [x] 完成中文化，并按工作区约束保持未提交。
 
 ### Task 7: 完整验收与文档
 
@@ -128,8 +133,9 @@
 - Modify: `docs/superpowers/specs/2026-11-02-agent-crossbar-design.md`
 - Create: `docs/verification/compare-evaluation.md`
 
-- [ ] 运行 `npm.cmd run verify`。
-- [ ] 构建 sidecar 并运行 sidecar、Provider、桌面 Provider 三类冒烟。
-- [ ] 启动真实桌面应用，验证 Compare 与 Evaluation 的可交互状态。
-- [ ] 更新能力边界，明确 RAG、MCP、多 Agent、签名发行仍未完成。
-- [ ] 提交验收证据。
+- [x] 运行 `npm.cmd run verify`。
+- [x] 构建 sidecar 并运行 sidecar、Provider、桌面 Provider 三类冒烟。
+- [x] 启动真实桌面应用，验证 Compare 与 Evaluation 的可交互状态。
+- [x] 更新能力边界；后续平台里程碑已实现 MCP、词法知识检索、多 Agent、
+  更多运行时适配器与本地签名/更新验证，生产凭据与 HTTPS 更新服务仍需外部提供。
+- [x] 完成验收证据，并按工作区约束保持未提交。

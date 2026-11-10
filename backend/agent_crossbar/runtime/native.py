@@ -8,6 +8,12 @@ from typing import TypeVar
 
 from agent_crossbar.domain.events import EventSequence, RuntimeEvent, RuntimeEventType, TokenUsage
 from agent_crossbar.runtime.base import ModelProvider, ProviderRequest, RuntimeRequest
+from agent_crossbar.runtime.delegation import (
+    DELEGATE_TOOL_NAME,
+    DelegationCoordinator,
+    DelegationError,
+    delegation_tool_definition,
+)
 from agent_crossbar.runtime.messages import ConversationMessage, ModelResponse, ToolCall
 from agent_crossbar.runtime.tools import ToolExecutionError, ToolRegistry
 
@@ -39,9 +45,18 @@ class _EmptyModelResponse(Exception):
 
 
 class NativeRuntime:
-    def __init__(self, provider: ModelProvider, tool_registry: ToolRegistry) -> None:
+    def __init__(
+        self,
+        provider: ModelProvider,
+        tool_registry: ToolRegistry,
+        *,
+        delegation: DelegationCoordinator | None = None,
+        review: bool = False,
+    ) -> None:
         self._provider = provider
         self._tool_registry = tool_registry
+        self._delegation = delegation
+        self._review = review
 
     async def execute(self, request: RuntimeRequest) -> AsyncIterator[RuntimeEvent]:
         sequence = EventSequence(run_id=request.run_id)
@@ -55,11 +70,24 @@ class NativeRuntime:
                 payload={
                     "agent_name": request.spec.name,
                     "agent_version": request.spec.version,
+                    "runtime": request.spec.runtime,
                     "spec_digest": request.spec.digest(),
                     "model_profile": request.spec.model_profile,
                     "input_chars": len(request.input),
                     "max_turns": request.spec.execution.max_turns,
                     "tools": [tool.name for tool in request.spec.tools],
+                    "collaboration": {
+                        "mode": request.spec.collaboration.mode,
+                        "max_agents": request.spec.collaboration.max_agents,
+                        "members": [
+                            {
+                                "agent_id": member.agent_id,
+                                "version": member.version,
+                                "role": member.role,
+                            }
+                            for member in request.spec.collaboration.members
+                        ],
+                    },
                 },
             )
         )
@@ -70,7 +98,15 @@ class NativeRuntime:
 
             allowed_names = tuple(tool.name for tool in request.spec.tools)
             try:
-                tool_definitions = tuple(self._tool_registry.describe(allowed_names))
+                tool_definitions = list(self._tool_registry.describe(allowed_names))
+                if request.spec.collaboration.mode != "single":
+                    if self._delegation is None:
+                        raise ToolExecutionError(
+                            "delegation_unavailable",
+                            "multi-agent collaboration is not available",
+                        )
+                    tool_definitions.append(delegation_tool_definition(request.spec))
+                    allowed_names = (*allowed_names, DELEGATE_TOOL_NAME)
             except ToolExecutionError as error:
                 yield sequence.append(
                     RuntimeEvent.create(
@@ -91,6 +127,7 @@ class NativeRuntime:
                 ConversationMessage(role="user", content=request.input),
             ]
             total_usage = TokenUsage()
+            reviewed = False
 
             for turn in range(1, request.spec.execution.max_turns + 1):
                 self._raise_if_cancelled(cancel_event, "cancelled_before_model_turn")
@@ -158,7 +195,7 @@ class NativeRuntime:
                     )
                 )
 
-                if response.text:
+                if response.text and response.tool_calls:
                     yield sequence.append(
                         RuntimeEvent.create(
                             run_id=request.run_id,
@@ -193,6 +230,109 @@ class NativeRuntime:
                                 payload={"call_id": call.id, "name": call.name},
                             )
                         )
+
+                        if call.name == DELEGATE_TOOL_NAME:
+                            try:
+                                agent_id, version, input_text = self._delegation_arguments(
+                                    call.arguments
+                                )
+                                yield sequence.append(
+                                    RuntimeEvent.create(
+                                        run_id=request.run_id,
+                                        type=RuntimeEventType.HANDOFF_STARTED,
+                                        step_id=tool_step_id,
+                                        correlation_id=call.id,
+                                        payload={
+                                            "call_id": call.id,
+                                            "agent_id": agent_id,
+                                            "agent_version": version,
+                                        },
+                                    )
+                                )
+                                result = await _await_with_control(
+                                    self._delegation.delegate(
+                                        parent_run_id=request.run_id,
+                                        parent_spec=request.spec,
+                                        cancel_event=cancel_event,
+                                        agent_id=agent_id,
+                                        version=version,
+                                        input_text=input_text,
+                                    ),
+                                    cancel_event=cancel_event,
+                                    timeout=self._remaining(deadline),
+                                    cancel_reason="cancelled_during_delegation",
+                                )
+                            except DelegationError as error:
+                                error_payload = {"code": error.code, "message": str(error)}
+                                yield sequence.append(
+                                    RuntimeEvent.create(
+                                        run_id=request.run_id,
+                                        type=RuntimeEventType.HANDOFF_COMPLETED,
+                                        step_id=tool_step_id,
+                                        correlation_id=call.id,
+                                        payload={
+                                            "call_id": call.id,
+                                            "status": "failed",
+                                            "error": error_payload,
+                                        },
+                                    )
+                                )
+                                yield sequence.append(
+                                    RuntimeEvent.create(
+                                        run_id=request.run_id,
+                                        type=RuntimeEventType.TOOL_FAILED,
+                                        step_id=tool_step_id,
+                                        correlation_id=call.id,
+                                        payload={
+                                            "call_id": call.id,
+                                            "name": call.name,
+                                            "error": error_payload,
+                                        },
+                                    )
+                                )
+                                content = json.dumps(
+                                    {"ok": False, "error": error_payload},
+                                    ensure_ascii=False,
+                                    separators=(",", ":"),
+                                )
+                            else:
+                                content = result.content()
+                                yield sequence.append(
+                                    RuntimeEvent.create(
+                                        run_id=request.run_id,
+                                        type=RuntimeEventType.HANDOFF_COMPLETED,
+                                        step_id=tool_step_id,
+                                        correlation_id=call.id,
+                                        payload={
+                                            "call_id": call.id,
+                                            "child_run_id": result.child_run_id,
+                                            "status": result.status,
+                                            "output": result.output,
+                                            "error": result.error,
+                                        },
+                                    )
+                                )
+                                yield sequence.append(
+                                    RuntimeEvent.create(
+                                        run_id=request.run_id,
+                                        type=RuntimeEventType.TOOL_COMPLETED,
+                                        step_id=tool_step_id,
+                                        correlation_id=call.id,
+                                        payload={
+                                            "call_id": call.id,
+                                            "name": call.name,
+                                            "content": content,
+                                        },
+                                    )
+                                )
+                            messages.append(
+                                ConversationMessage(
+                                    role="tool",
+                                    content=content,
+                                    tool_call_id=call.id,
+                                )
+                            )
+                            continue
 
                         try:
                             result = await _await_with_control(
@@ -255,11 +395,104 @@ class NativeRuntime:
 
                 if not response.text.strip():
                     raise _EmptyModelResponse
+
+                final_text = response.text
+                if self._review and not reviewed:
+                    review_step = "review-1"
+                    yield sequence.append(
+                        RuntimeEvent.create(
+                            run_id=request.run_id,
+                            type=RuntimeEventType.MODEL_STARTED,
+                            step_id=review_step,
+                            payload={
+                                "turn": turn,
+                                "phase": "review",
+                                "model_profile": request.spec.model_profile,
+                                "message_count": len(messages) + 1,
+                            },
+                        )
+                    )
+                    review_messages = (
+                        *messages,
+                        ConversationMessage(
+                            role="user",
+                            content=(
+                                "Review the draft answer above against the original request. "
+                                "Return only the corrected, complete final answer. Preserve "
+                                "citations and clearly state uncertainty instead of inventing "
+                                "facts.\n\nDraft answer:\n"
+                                f"{response.text}"
+                            ),
+                        ),
+                    )
+                    review_request = ProviderRequest(
+                        messages=review_messages,
+                        tools=(),
+                        model_profile=request.spec.model_profile,
+                        turn=turn + 1,
+                    )
+                    attempts = request.spec.execution.retry_count + 1
+                    for attempt in range(1, attempts + 1):
+                        try:
+                            review_response = await _await_with_control(
+                                self._provider.complete(review_request),
+                                cancel_event=cancel_event,
+                                timeout=self._remaining(deadline),
+                                cancel_reason="cancelled_during_review",
+                            )
+                            break
+                        except (_RunCancelled, _RunTimeout):
+                            raise
+                        except Exception as error:
+                            if attempt == attempts:
+                                raise _ProviderFailed(str(error)) from error
+                            yield sequence.append(
+                                RuntimeEvent.create(
+                                    run_id=request.run_id,
+                                    type=RuntimeEventType.WARNING,
+                                    step_id=review_step,
+                                    payload={
+                                        "code": "provider_retry",
+                                        "phase": "review",
+                                        "attempt": attempt,
+                                        "max_attempts": attempts,
+                                    },
+                                )
+                            )
+                    total_usage = self._add_usage(total_usage, review_response.usage)
+                    yield sequence.append(
+                        RuntimeEvent.create(
+                            run_id=request.run_id,
+                            type=RuntimeEventType.MODEL_COMPLETED,
+                            step_id=review_step,
+                            payload={
+                                "turn": turn + 1,
+                                "phase": "review",
+                                "text": review_response.text,
+                                "finish_reason": review_response.finish_reason,
+                                "tool_call_count": len(review_response.tool_calls),
+                            },
+                            usage=review_response.usage,
+                        )
+                    )
+                    final_text = review_response.text
+                    reviewed = True
+
+                if not final_text.strip():
+                    raise _EmptyModelResponse
+                yield sequence.append(
+                    RuntimeEvent.create(
+                        run_id=request.run_id,
+                        type=RuntimeEventType.TEXT_DELTA,
+                        step_id="review-1" if self._review else f"model-{turn}",
+                        payload={"delta": final_text},
+                    )
+                )
                 yield sequence.append(
                     RuntimeEvent.create(
                         run_id=request.run_id,
                         type=RuntimeEventType.RUN_COMPLETED,
-                        payload={"output": response.text},
+                        payload={"output": final_text},
                         usage=total_usage,
                     )
                 )
@@ -379,6 +612,28 @@ class NativeRuntime:
             raise _RunCancelled(reason)
 
     @staticmethod
+    def _delegation_arguments(arguments: dict[str, object]) -> tuple[str, str, str]:
+        agent_id = arguments.get("agent_id")
+        version = arguments.get("version")
+        input_text = arguments.get("input")
+        if (
+            not isinstance(agent_id, str)
+            or not agent_id.strip()
+            or len(agent_id) > 100
+            or not isinstance(version, str)
+            or not version.strip()
+            or len(version) > 80
+            or not isinstance(input_text, str)
+            or not input_text.strip()
+            or len(input_text) > 100_000
+        ):
+            raise DelegationError(
+                "delegation_invalid_arguments",
+                "Delegation requires a valid agent_id, version, and non-empty input.",
+            )
+        return agent_id, version, input_text
+
+    @staticmethod
     def _remaining(deadline: float) -> float:
         remaining = deadline - asyncio.get_running_loop().time()
         if remaining <= 0:
@@ -441,6 +696,71 @@ class ToolDemoProvider:
             text = "The answer is 4."
         else:
             text = f"The calculator returned: {tool_results[-1]}"
+        return ModelResponse(
+            text=text,
+            usage=TokenUsage(
+                input_tokens=len(request.messages),
+                output_tokens=len(text.split()),
+            ),
+        )
+
+
+class DelegationDemoProvider:
+    """Deterministic provider that exercises one authorized delegation."""
+
+    async def complete(self, request: ProviderRequest) -> ModelResponse:
+        delegation_tool = next(
+            (tool for tool in request.tools if tool.name == DELEGATE_TOOL_NAME),
+            None,
+        )
+        if delegation_tool is None:
+            text = "The delegation tool is required for this offline demo."
+            return ModelResponse(
+                text=text,
+                usage=TokenUsage(
+                    input_tokens=len(request.messages),
+                    output_tokens=len(text.split()),
+                ),
+            )
+
+        properties = delegation_tool.input_schema.get("properties", {})
+        agent_ids = properties.get("agent_id", {}).get("enum", [])
+        versions = properties.get("version", {}).get("enum", [])
+        if not agent_ids or not versions:
+            text = "No authorized collaboration member is available."
+            return ModelResponse(
+                text=text,
+                usage=TokenUsage(
+                    input_tokens=len(request.messages),
+                    output_tokens=len(text.split()),
+                ),
+            )
+
+        delegation_results = [
+            message.content
+            for message in request.messages
+            if message.role == "tool" and message.tool_call_id == "call_delegate_demo"
+        ]
+        if not delegation_results:
+            return ModelResponse(
+                tool_calls=(
+                    ToolCall(
+                        id="call_delegate_demo",
+                        name=DELEGATE_TOOL_NAME,
+                        arguments={
+                            "agent_id": agent_ids[0],
+                            "version": versions[0],
+                            "input": (
+                                "Summarize the delegated evidence and identify one follow-up."
+                            ),
+                        },
+                    ),
+                ),
+                usage=TokenUsage(input_tokens=len(request.messages)),
+                finish_reason="tool_calls",
+            )
+
+        text = f"Delegated result received: {delegation_results[-1]}"
         return ModelResponse(
             text=text,
             usage=TokenUsage(

@@ -542,8 +542,11 @@ without a credential.
 - [x] **Step 5: Update implementation status honestly**
 
 Mark OS credential storage and in-app provider configuration implemented only
-if every prior step passed. Keep MCP, RAG, evaluation, comparison, multi-agent,
-signed distribution, and auto-update explicitly incomplete.
+if every prior step passed. At the time of this milestone, MCP, knowledge
+retrieval, evaluation, comparison, multi-agent execution, and signed
+distribution were outside scope. They were added by later milestones; use
+`docs/verification/agent-platform.md` for the current boundary and keep
+production credentials and the HTTPS update service explicitly external.
 
 - [x] **Step 6: Commit**
 

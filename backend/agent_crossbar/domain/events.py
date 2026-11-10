@@ -21,6 +21,7 @@ class RuntimeEventType(str, Enum):
     APPROVAL_REQUESTED = "approval_requested"
     APPROVAL_RESOLVED = "approval_resolved"
     HANDOFF_STARTED = "handoff_started"
+    HANDOFF_COMPLETED = "handoff_completed"
     CHECKPOINT_SAVED = "checkpoint_saved"
     WARNING = "warning"
     RUN_COMPLETED = "run_completed"

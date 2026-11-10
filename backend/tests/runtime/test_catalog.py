@@ -28,6 +28,7 @@ def test_catalog_exposes_configuration_without_secret() -> None:
 
     assert "must-not-leak" not in json.dumps(payload)
     assert {profile.id for profile in catalog.list_public()} == {
+        "local.delegate-demo",
         "local.echo",
         "local.tool-demo",
         "openai.default",

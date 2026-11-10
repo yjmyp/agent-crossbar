@@ -7,9 +7,10 @@ from urllib.parse import urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
+from agent_crossbar.domain.urls import is_loopback_host
 from agent_crossbar.runtime.base import ModelProvider, ProviderRequest
 from agent_crossbar.runtime.messages import ConversationMessage
-from agent_crossbar.runtime.native import EchoProvider, ToolDemoProvider
+from agent_crossbar.runtime.native import DelegationDemoProvider, EchoProvider, ToolDemoProvider
 from agent_crossbar.runtime.openai_compat import OpenAICompatibleProvider
 
 _OPENAI_BASE_URL = "AGENT_CROSSBAR_OPENAI_BASE_URL"
@@ -48,6 +49,8 @@ class OpenAIConnectionConfig(BaseModel):
             or parsed.fragment
         ):
             raise ValueError("base_url must be an explicit HTTP(S) endpoint")
+        if parsed.scheme == "http" and not is_loopback_host(parsed.hostname):
+            raise ValueError("remote model base_url must use HTTPS")
         return value
 
 
@@ -113,6 +116,16 @@ class ProviderCatalog:
                     configured=True,
                 ),
                 provider=ToolDemoProvider(),
+            ),
+            "local.delegate-demo": _ProviderEntry(
+                profile=ProviderProfile(
+                    id="local.delegate-demo",
+                    label="Offline delegation demo",
+                    provider_type="deterministic_delegation",
+                    model="deterministic-delegation",
+                    configured=True,
+                ),
+                provider=DelegationDemoProvider(),
             ),
         }
 

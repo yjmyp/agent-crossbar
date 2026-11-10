@@ -8,11 +8,13 @@ import { TopBar, type ServiceState } from "./components/layout/TopBar";
 import { ErrorState, LoadingState } from "./components/ui/States";
 import { AgentStudioPage } from "./pages/AgentStudioPage";
 import { CommandCenterPage } from "./pages/CommandCenterPage";
-import { NextPhasePage } from "./pages/NextPhasePage";
+import { ComparePage } from "./pages/ComparePage";
+import { EvaluationPage } from "./pages/EvaluationPage";
 import { RegistryPage } from "./pages/RegistryPage";
 import { RunCenterPage } from "./pages/RunCenterPage";
 import { RunDetailPage } from "./pages/RunDetailPage";
 import { TraceExplorerPage } from "./pages/TraceExplorerPage";
+import { WorkersPage } from "./pages/WorkersPage";
 
 type AppProps = {
   bridge?: Bridge;
@@ -25,13 +27,14 @@ type LoadedBridge =
   | { status: "failed"; bridge: null; error: string };
 
 const sectionTitles: Record<string, string> = {
-  overview: "Command Center",
-  studio: "Agent Studio",
-  runs: "Run Center",
-  trace: "Trace Explorer",
-  compare: "Compare",
-  evaluation: "Evaluation Lab",
-  registry: "Registry",
+  overview: "指挥中心",
+  studio: "智能体工作室",
+  runs: "运行中心",
+  trace: "轨迹浏览器",
+  compare: "运行对比",
+  evaluation: "评测实验室",
+  registry: "能力注册中心",
+  workers: "私有执行节点",
 };
 
 export function App({ bridge: suppliedBridge, initialRoute }: AppProps) {
@@ -106,19 +109,19 @@ export function App({ bridge: suppliedBridge, initialRoute }: AppProps) {
         <main className="app-content" id="main-content">
           {loadedBridge.status === "loading" ? (
             <div className="connection-gate">
-              <LoadingState label="Starting the private desktop service" />
+              <LoadingState label="正在启动本地桌面服务" />
             </div>
           ) : null}
           {loadedBridge.status === "failed" ? (
             <div className="connection-gate">
               <ErrorState
-                title="The desktop service is unavailable"
+                title="桌面服务不可用"
                 message={loadedBridge.error}
               />
               <p className="connection-gate__hint">
                 <WifiOff size={14} aria-hidden="true" />
-                Launch through the Agent Crossbar desktop shell. A browser-only preview cannot
-                access the protected local sidecar.
+                请通过 Agent Crossbar 桌面应用启动。仅使用浏览器预览时，无法访问受保护
+                的本地服务进程。
               </p>
             </div>
           ) : null}
@@ -168,13 +171,16 @@ function RouteView({
     return <TraceExplorerPage bridge={bridge} navigate={navigate} />;
   }
   if (route === "/compare") {
-    return <NextPhasePage phase="compare" />;
+    return <ComparePage bridge={bridge} navigate={navigate} />;
   }
   if (route === "/evaluation") {
-    return <NextPhasePage phase="evaluation" />;
+    return <EvaluationPage bridge={bridge} navigate={navigate} />;
   }
   if (route === "/registry") {
     return <RegistryPage bridge={bridge} navigate={navigate} />;
+  }
+  if (route === "/workers") {
+    return <WorkersPage bridge={bridge} navigate={navigate} />;
   }
   return <CommandCenterPage bridge={bridge} navigate={navigate} />;
 }
@@ -198,6 +204,7 @@ function routeSection(route: string): string {
   if (route === "/compare") return "compare";
   if (route === "/evaluation") return "evaluation";
   if (route === "/registry") return "registry";
+  if (route === "/workers") return "workers";
   return "overview";
 }
 

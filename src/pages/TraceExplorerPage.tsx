@@ -3,6 +3,7 @@ import { ArrowRight, Waypoints } from "lucide-react";
 import type { Bridge, RunRecord } from "../lib/bridge";
 import { errorMessage } from "../lib/errors";
 import { formatRelativeTime, shortId } from "../lib/format";
+import { runStatusLabel } from "../lib/localization";
 import { PageHeader } from "../components/layout/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { StatusBadge } from "../components/ui/StatusBadge";
@@ -40,17 +41,17 @@ export function TraceExplorerPage({
   return (
     <div className="page">
       <PageHeader
-        eyebrow="Investigate"
-        title="Trace Explorer"
-        description="Choose a run to inspect its complete model, tool, and lifecycle evidence."
+        eyebrow="调查"
+        title="轨迹浏览器"
+        description="选择一次运行，查看完整的模型、工具与生命周期证据。"
       />
       <section className="panel">
-        {loading ? <LoadingState label="Indexing local traces" /> : null}
+        {loading ? <LoadingState label="正在索引本地轨迹" /> : null}
         {error ? <ErrorState message={error} /> : null}
         {!loading && !error && runs.length === 0 ? (
           <EmptyState
-            title="No traces to explore"
-            description="Run an agent first. Every trace in this view is backed by persisted events."
+            title="还没有可浏览的轨迹"
+            description="请先运行智能体。这里的每条轨迹都由持久化事件构成。"
             icon={<Waypoints size={22} aria-hidden="true" />}
           />
         ) : null}
@@ -70,7 +71,9 @@ export function TraceExplorerPage({
                   <strong>{shortId(run.run_id)}</strong>
                   <small>{run.input}</small>
                 </span>
-                <StatusBadge tone={runStatusTone(run.status)}>{run.status}</StatusBadge>
+                <StatusBadge tone={runStatusTone(run.status)}>
+                  {runStatusLabel(run.status)}
+                </StatusBadge>
                 <span>{formatRelativeTime(run.created_at)}</span>
                 <ArrowRight size={15} aria-hidden="true" />
               </button>

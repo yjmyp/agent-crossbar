@@ -9,6 +9,12 @@ tool loop that runs through the packaged Windows sidecar. This verifies the
 execution-core slice, not the complete product described by the long-term
 architecture.
 
+This file is the historical acceptance record for the execution-core slice.
+Its test counts and package hash are preserved as observed at that milestone.
+The latest cross-platform quality gate, artifact hashes, MCP, lexical RAG,
+multi-agent, adapter, signing, updater, and MSI evidence are recorded in
+[`agent-platform.md`](agent-platform.md).
+
 ## Automated quality gate
 
 Command:
@@ -175,17 +181,27 @@ This slice includes:
 - packaged-sidecar proof of the complete tool-call loop.
 
 The following remained outside this execution-core slice at the time it was
-verified:
+verified. This is a historical scope statement, not the current platform
+capability:
 
 - operating-system credential-vault management (implemented by the subsequent
   secure-provider slice);
-- signed distribution and updates;
-- MCP and remote tool protocols;
-- RAG;
-- evaluation datasets and regression gates;
-- cross-run comparison;
-- multi-agent collaboration;
-- LangGraph and other runtime adapters;
+- signed distribution and updates (local release tooling was implemented by a
+  later milestone; production credentials and an update service are still
+  external);
+- MCP and remote tool protocols (implemented by a later milestone);
+- lexical knowledge retrieval (implemented by a later milestone as FTS5
+  BM25/exact fallback, not vector RAG);
+- evaluation datasets and regression gates (implemented by the subsequent
+  compare/evaluation slice);
+- cross-run comparison (implemented by the subsequent compare/evaluation
+  slice);
+- multi-agent collaboration (bounded supervisor/handoff delegation was
+  implemented by a later milestone);
+- LangGraph and other runtime adapters (implemented by a later milestone);
 - a real-model packaged run in this environment.
+
+See [`agent-platform.md`](agent-platform.md) for the current capability and
+verification record.
 
 No claim of full commercial or production readiness is made from this record.

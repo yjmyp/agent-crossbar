@@ -1,6 +1,7 @@
 mod credentials;
 mod logging;
 mod paths;
+mod release;
 mod sidecar;
 
 use serde::Serialize;
@@ -31,10 +32,29 @@ fn delete_provider_credential() -> Result<(), String> {
     credentials::delete()
 }
 
+#[tauri::command]
+fn get_embedding_credential() -> Result<credentials::ProviderCredentialSummary, String> {
+    credentials::embedding_summary()
+}
+
+#[tauri::command]
+fn save_embedding_credential(
+    input: credentials::ProviderCredentialInput,
+) -> Result<credentials::ProviderCredentialSummary, String> {
+    credentials::save_embedding(input)
+}
+
+#[tauri::command]
+fn delete_embedding_credential() -> Result<(), String> {
+    credentials::delete_embedding()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let log_dir = paths::log_dir().map_err(std::io::Error::other)?;
             logging::init(&log_dir.join("agent-crossbar.log")).map_err(|error| {
@@ -71,7 +91,14 @@ pub fn run() {
             app_ready,
             get_provider_credential,
             save_provider_credential,
-            delete_provider_credential
+            delete_provider_credential,
+            get_embedding_credential,
+            save_embedding_credential,
+            delete_embedding_credential,
+            release::get_signature_status,
+            release::get_update_status,
+            release::install_update,
+            release::restart_application
         ])
         .build(tauri::generate_context!())
         .expect("error while building Agent Crossbar");

@@ -126,6 +126,34 @@ def test_duplicate_spec_version_returns_conflict(client: TestClient) -> None:
     assert response.json()["error"]["code"] == "duplicate_spec"
 
 
+def test_collaboration_reference_is_not_rejected_by_the_agents_readable_name(
+    client: TestClient,
+) -> None:
+    member = create_spec(client)
+    payload = spec_payload() | {
+        "name": member["agent_id"],
+        "version": "1.0.0",
+        "collaboration": {
+            "mode": "supervisor",
+            "max_agents": 2,
+            "members": [
+                {
+                    "agent_id": member["agent_id"],
+                    "version": "1.0.0",
+                    "role": "research the evidence",
+                }
+            ],
+        },
+    }
+
+    response = client.post("/v1/specs", json=payload, headers=_AUTHORIZATION)
+
+    assert response.status_code == 201
+    assert response.json()["spec"]["collaboration"]["members"][0]["agent_id"] == (
+        member["agent_id"]
+    )
+
+
 def test_run_streams_start_and_terminal_event(client: TestClient) -> None:
     spec = create_spec(client)
 
@@ -189,6 +217,71 @@ def test_unknown_run_returns_not_found(client: TestClient) -> None:
     assert response.json()["error"]["code"] == "run_not_found"
 
 
+def test_run_tree_includes_grandchildren_and_is_bounded_for_middle_node(
+    client: TestClient,
+) -> None:
+    spec = create_spec(client)
+    run_store = client.app.state.run_store
+    root = run_store.create(
+        agent_id=str(spec["agent_id"]),
+        spec_version="1.0.0",
+        input_text="root",
+    )
+    child = run_store.create(
+        agent_id=str(spec["agent_id"]),
+        spec_version="1.0.0",
+        input_text="child",
+        parent_run_id=root.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=1,
+    )
+    sibling = run_store.create(
+        agent_id=str(spec["agent_id"]),
+        spec_version="1.0.0",
+        input_text="sibling",
+        parent_run_id=root.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=1,
+    )
+    grandchild = run_store.create(
+        agent_id=str(spec["agent_id"]),
+        spec_version="1.0.0",
+        input_text="grandchild",
+        parent_run_id=child.run_id,
+        root_run_id=root.run_id,
+        delegation_depth=2,
+    )
+
+    root_tree = client.get(
+        f"/v1/runs/{root.run_id}/tree",
+        headers=_AUTHORIZATION,
+    )
+    middle_tree = client.get(
+        f"/v1/runs/{child.run_id}/tree",
+        headers=_AUTHORIZATION,
+    )
+
+    assert root_tree.status_code == 200
+    assert root_tree.json()["run"]["run_id"] == root.run_id
+    assert {
+        node["run"]["run_id"]
+        for node in root_tree.json()["children"]
+    } == {child.run_id, sibling.run_id}
+    child_node = next(
+        node
+        for node in root_tree.json()["children"]
+        if node["run"]["run_id"] == child.run_id
+    )
+    assert [node["run"]["run_id"] for node in child_node["children"]] == [
+        grandchild.run_id
+    ]
+    assert middle_tree.status_code == 200
+    assert middle_tree.json()["run"]["run_id"] == child.run_id
+    assert [node["run"]["run_id"] for node in middle_tree.json()["children"]] == [
+        grandchild.run_id
+    ]
+
+
 def test_provider_and_tool_catalog_require_authentication(client: TestClient) -> None:
     providers = client.get("/v1/providers")
     tools = client.get("/v1/tools")
@@ -207,6 +300,7 @@ def test_provider_and_tool_catalog_are_publicly_described_without_secrets(
     assert tools_response.status_code == 200
     providers = providers_response.json()
     assert {profile["id"] for profile in providers} == {
+            "local.delegate-demo",
         "local.echo",
         "local.tool-demo",
         "openai.default",
@@ -219,6 +313,7 @@ def test_provider_and_tool_catalog_are_publicly_described_without_secrets(
     )["configured"] is False
     assert {tool["name"] for tool in tools_response.json()} == {
         "calculator",
+        "knowledge_search",
         "text_stats",
     }
 
@@ -279,6 +374,29 @@ def test_tool_demo_persists_a_complete_tool_loop(client: TestClient) -> None:
     ]
     completed = next(event for event in events if event["type"] == "tool_completed")
     assert completed["payload"]["content"] == "4"
+
+
+def test_structured_runtime_adapter_is_applied_by_the_public_run_api(
+    client: TestClient,
+) -> None:
+    payload = spec_payload() | {
+        "runtime": "structured",
+        "output_schema": {
+            "type": "object",
+            "properties": {"answer": {"type": "string"}},
+            "required": ["answer"],
+            "additionalProperties": False,
+        },
+    }
+    response = client.post("/v1/specs", json=payload, headers=_AUTHORIZATION)
+    assert response.status_code == 201
+    spec = response.json()
+
+    run = start_run(client, spec)
+    terminal = wait_for_terminal(client, str(run["run_id"]))
+
+    assert terminal["status"] == "failed"
+    assert terminal["error"]["code"] == "structured_output_invalid"
 
 
 def test_openai_configuration_can_be_set_tested_and_removed(client: TestClient) -> None:
