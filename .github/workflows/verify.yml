@@ -79,6 +79,14 @@ jobs:
       CARGO_PROFILE_TEST_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build the frontend bundle required by tauri-build
+        run: |
+          npm ci
+          npm run build
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
