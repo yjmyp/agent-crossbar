@@ -87,6 +87,13 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Create the sidecar placeholder required by tauri-build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/binaries | Out-Null
+          Set-Content -NoNewline `
+            -LiteralPath src-tauri/binaries/agent-crossbar-sidecar-x86_64-pc-windows-msvc.exe `
+            -Value "placeholder for compile-only unit tests"
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
