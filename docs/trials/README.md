@@ -17,6 +17,21 @@
 5. 不争论，不解释“其实可以这样”；先记录，再修。
 6. 试用结束后填写 `.github/ISSUE_TEMPLATE/user-trial.yml` 或直接回复反馈表。
 
+## 对方要执行的两条命令
+
+```powershell
+git clone https://github.com/yjmyp/agent-crossbar
+cd agent-crossbar
+uv run --with build python -m build --wheel -o build/wheels
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trial.ps1
+```
+
+脚本会自己建 venv、装 wheel、跑不安全样本、跑 demo，并在
+`%TEMP%\crossbar-trial-<时间戳>\report.md` 写一份带耗时和报错的报告。
+对方只需要把 `report.md` 发回来。
+
+实测：本机 Windows 11 + Python 3.10 全新 venv，63 秒 PASS。
+
 ## 反馈表
 
 | 字段 | 内容 |
