@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -78,7 +78,7 @@ class RuntimeEvent(BaseModel):
             run_id=run_id,
             sequence=0,
             type=type,
-            timestamp=datetime.now(UTC),
+            timestamp=datetime.now(timezone.utc),
             step_id=step_id,
             correlation_id=correlation_id,
             payload=payload or {},

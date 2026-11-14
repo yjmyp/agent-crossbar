@@ -4,7 +4,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -84,7 +84,7 @@ class RunStore:
         delegation_depth: int = 0,
     ) -> RunRecord:
         run_id = f"run_{uuid.uuid4().hex}"
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         effective_root_run_id = root_run_id or run_id
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
@@ -125,7 +125,7 @@ class RunStore:
             raise ValueError("max_depth must be at least 1")
 
         run_id = f"run_{uuid.uuid4().hex}"
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with self._database.write_lock, self._database.connection:
             parent_row = self._database.connection.execute(
                 """
@@ -275,7 +275,7 @@ class RunStore:
         return [_run_from_row(row) for row in rows]
 
     def mark_running(self, run_id: str) -> None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 """
@@ -299,7 +299,7 @@ class RunStore:
     ) -> None:
         if status not in TERMINAL_RUN_STATUSES:
             raise ValueError(f"{status.value} is not a terminal run status")
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         error_json = (
             json.dumps(error, ensure_ascii=False, sort_keys=True) if error is not None else None
         )

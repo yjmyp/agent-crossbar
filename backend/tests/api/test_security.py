@@ -1,6 +1,6 @@
 import time
 from collections.abc import Iterator
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -78,7 +78,7 @@ def test_waiver_is_owned_and_expires(
             "file_pattern": "handler.py",
             "owner": "security-lead",
             "reason": "演练样本，仅用于回归测试，不进入生产分支。",
-            "expires_at": (datetime.now(UTC) + timedelta(days=3)).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(days=3)).isoformat(),
         },
         headers=_AUTHORIZATION,
     )
@@ -110,7 +110,7 @@ def test_waiver_requires_owner_reason_and_future_expiry(
             "file_pattern": "**",
             "owner": "x",
             "reason": "short",
-            "expires_at": (datetime.now(UTC) - timedelta(days=1)).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
         },
         headers=_AUTHORIZATION,
     )

@@ -1,4 +1,4 @@
-from datetime import UTC
+from datetime import timezone
 
 import pytest
 from agent_crossbar.domain.events import (
@@ -37,7 +37,7 @@ def test_terminal_event_types_are_explicit() -> None:
 def test_event_timestamp_is_timezone_aware_utc() -> None:
     event = RuntimeEvent.create(run_id="run-1", type=RuntimeEventType.RUN_STARTED)
 
-    assert event.timestamp.tzinfo == UTC
+    assert event.timestamp.tzinfo == timezone.utc
 
 
 def test_rejects_negative_token_usage() -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -85,7 +85,7 @@ class SecurityReviewService:
         citations = citation_payload(findings, policy)
 
         waivers = self._store.active_waivers()
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         for finding in findings:
             finding["citations"] = citations.get(finding_key(finding), [])
             applied = _match_waiver(waivers, finding, now)
@@ -100,7 +100,7 @@ class SecurityReviewService:
 
         payload: dict[str, Any] = {
             "review_id": "",
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "root": str(target),
             "scan": {
                 "mode": "changed" if changed_only else "full",
@@ -164,7 +164,7 @@ class SecurityReviewService:
         return self._store.list_reviews(limit=limit)
 
     def list_waivers(self) -> list[dict[str, Any]]:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         payload: list[dict[str, Any]] = []
         for waiver in self._store.list_waivers():
             payload.append(
@@ -201,8 +201,12 @@ class SecurityReviewService:
             raise SecurityReviewError("豁免必须指定责任人 owner")
         if len(reason_value) < 8:
             raise SecurityReviewError("豁免必须写明理由（至少 8 个字符）")
-        expiry = expires_at.replace(tzinfo=UTC) if expires_at.tzinfo is None else expires_at
-        if expiry <= datetime.now(UTC):
+        expiry = (
+            expires_at.replace(tzinfo=timezone.utc)
+            if expires_at.tzinfo is None
+            else expires_at
+        )
+        if expiry <= datetime.now(timezone.utc):
             raise SecurityReviewError("豁免到期时间必须晚于当前时间")
         waiver = self._store.create_waiver(
             rule_id=rule,

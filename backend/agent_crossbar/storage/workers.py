@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from agent_crossbar.domain.worker import WorkerCreate
 from agent_crossbar.storage.database import Database
@@ -34,7 +34,7 @@ class WorkerStore:
 
     def create(self, value: WorkerCreate) -> WorkerRecord:
         worker_id = f"worker_{uuid.uuid4().hex[:16]}"
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
@@ -107,7 +107,7 @@ class WorkerStore:
         return [_worker_from_row(row) for row in rows]
 
     def set_enabled(self, worker_id: str, enabled: bool) -> WorkerRecord:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 "UPDATE workers SET enabled = ?, updated_at = ? WHERE worker_id = ?",

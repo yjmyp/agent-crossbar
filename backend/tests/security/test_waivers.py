@@ -1,10 +1,10 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from agent_crossbar.security.policy import waiver_applies
 
 
 def test_waiver_requires_future_expiry_and_matching_scope() -> None:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     finding = {"rule_id": "CS-PY-001", "file": "app/handler.py", "line": 12}
     active = {
         "rule_id": "*",
@@ -25,6 +25,6 @@ def test_waiver_requires_future_expiry_and_matching_scope() -> None:
 
 
 def test_waiver_with_invalid_timestamp_is_not_applied() -> None:
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     finding = {"rule_id": "CS-PY-001", "file": "handler.py"}
     assert waiver_applies({"rule_id": "*", "expires_at": "not-a-date"}, finding, now) is False

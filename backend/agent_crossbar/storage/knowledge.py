@@ -6,7 +6,7 @@ import re
 import sqlite3
 import struct
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Protocol
 
 from agent_crossbar.domain.knowledge import KnowledgeDocumentCreate
@@ -144,7 +144,7 @@ class KnowledgeStore:
         identity = f"{value.source_name or value.title}\0{content_digest}".encode()
         document_id = f"doc_{hashlib.sha256(identity).hexdigest()[:24]}"
         chunks = _chunk(content)
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         with self._database.write_lock, self._database.connection:
             existing = self._database.connection.execute(
@@ -390,7 +390,7 @@ class KnowledgeStore:
             updated_at=(
                 datetime.fromisoformat(row["updated_at"])
                 if row is not None
-                else datetime.now(UTC)
+                else datetime.now(timezone.utc)
             ),
         )
 
@@ -677,7 +677,7 @@ class KnowledgeStore:
         state: str,
         error: str | None,
     ) -> None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """

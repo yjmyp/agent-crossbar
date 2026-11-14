@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -25,8 +25,8 @@ def record(**overrides: object) -> WorkerRecord:
         "max_concurrency": 2,
         "timeout_seconds": 30,
         "enabled": True,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
     values.update(overrides)
     return WorkerRecord(**values)  # type: ignore[arg-type]

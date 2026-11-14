@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -68,7 +68,7 @@ async def test_environment_configuration_error_keeps_stable_code(
                     "required": ["value"],
                     "additionalProperties": False,
                 },
-                discovered_at=datetime.now(UTC),
+                discovered_at=datetime.now(timezone.utc),
             )
         ],
     )

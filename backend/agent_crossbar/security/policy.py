@@ -5,7 +5,7 @@ from __future__ import annotations
 import fnmatch
 import re
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -148,7 +148,7 @@ def waiver_applies(waiver: dict[str, Any], finding: dict[str, Any], now: datetim
     except ValueError:
         return False
     if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=UTC)
+        expiry = expiry.replace(tzinfo=timezone.utc)
     if expiry <= now:
         return False
     rule_id = str(waiver.get("rule_id", ""))

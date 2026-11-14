@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -16,7 +16,7 @@ def _tool(server_id: str, name: str) -> MCPToolRecord:
         exposed_name=f"mcp.{server_id}.{name}",
         description=f"Tool {name}.",
         input_schema={"type": "object", "properties": {}},
-        discovered_at=datetime.now(UTC),
+        discovered_at=datetime.now(timezone.utc),
     )
 
 
@@ -57,7 +57,7 @@ def test_cross_server_exposed_name_collision_aborts_replacement(tmp_path: Path) 
         exposed_name=f"mcp.{first.server_id}.echo",
         description="Collision.",
         input_schema={"type": "object"},
-        discovered_at=datetime.now(UTC),
+        discovered_at=datetime.now(timezone.utc),
     )
     store.replace_tools(first.server_id, [_tool(first.server_id, "echo")])
 

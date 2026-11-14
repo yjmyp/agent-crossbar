@@ -7,7 +7,7 @@ import os
 import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from mcp import Client, StdioServerParameters
@@ -221,7 +221,7 @@ def _convert_tool(server: MCPServerRecord, tool: object) -> MCPToolRecord | None
             else f"MCP tool {tool_name} from {server.label}"
         ),
         input_schema=input_schema,
-        discovered_at=datetime.now(UTC),
+        discovered_at=datetime.now(timezone.utc),
     )
     return record if _definition(record) is not None else None
 

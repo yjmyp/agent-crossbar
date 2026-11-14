@@ -4,7 +4,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from agent_crossbar.domain.evaluation import (
@@ -76,7 +76,7 @@ class EvaluationStore:
 
     def create_dataset(self, dataset: EvaluationDataset) -> EvaluationDatasetRecord:
         dataset_id = f"dataset_{uuid.uuid4().hex}"
-        created_at = datetime.now(UTC)
+        created_at = datetime.now(timezone.utc)
         try:
             with self._database.write_lock, self._database.connection:
                 self._database.connection.execute(
@@ -161,7 +161,7 @@ class EvaluationStore:
                 raise ValueError("baseline batch must use the same evaluation dataset")
 
         batch_id = f"eval_{uuid.uuid4().hex}"
-        created_at = datetime.now(UTC)
+        created_at = datetime.now(timezone.utc)
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
@@ -240,7 +240,7 @@ class EvaluationStore:
         return [self.get_batch(row["batch_id"]) for row in rows]
 
     def mark_batch_running(self, batch_id: str) -> None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 """
@@ -309,7 +309,7 @@ class EvaluationStore:
             raise ValueError(f"{status.value} is not a terminal evaluation status")
         if gate_status not in {"not_evaluated", "pass", "regression"}:
             raise ValueError(f"unsupported gate status {gate_status}")
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 """

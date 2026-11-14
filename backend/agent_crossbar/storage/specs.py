@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from agent_crossbar.domain.spec import AgentSpec
 from agent_crossbar.storage.database import Database
@@ -33,7 +33,7 @@ class SpecStore:
 
     def create(self, spec: AgentSpec) -> AgentSpecRecord:
         agent_id = agent_id_for_name(spec.name)
-        created_at = datetime.now(UTC)
+        created_at = datetime.now(timezone.utc)
         timestamp = created_at.isoformat()
         try:
             with self._database.connection:

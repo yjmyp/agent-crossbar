@@ -4,7 +4,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from agent_crossbar.security.errors import (
@@ -55,7 +55,7 @@ class SecurityStore:
         payload: dict[str, Any],
     ) -> SecurityReviewRecord:
         review_id = f"rev_{uuid.uuid4().hex}"
-        created_at = datetime.now(UTC)
+        created_at = datetime.now(timezone.utc)
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
@@ -119,7 +119,7 @@ class SecurityStore:
         expires_at: datetime,
     ) -> SecurityWaiverRecord:
         waiver_id = f"wv_{uuid.uuid4().hex}"
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
@@ -157,7 +157,7 @@ class SecurityStore:
         return [_waiver_from_row(row) for row in rows]
 
     def active_waivers(self, now: datetime | None = None) -> list[dict[str, Any]]:
-        current = _utc(now or datetime.now(UTC))
+        current = _utc(now or datetime.now(timezone.utc))
         return [
             {
                 "waiver_id": waiver.waiver_id,
@@ -172,7 +172,7 @@ class SecurityStore:
         ]
 
     def revoke_waiver(self, waiver_id: str) -> SecurityWaiverRecord:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 """
@@ -190,7 +190,9 @@ class SecurityStore:
 
 
 def _utc(value: datetime) -> datetime:
-    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _review_from_row(row: sqlite3.Row) -> SecurityReviewRecord:

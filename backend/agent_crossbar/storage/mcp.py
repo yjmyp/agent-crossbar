@@ -4,7 +4,7 @@ import json
 import sqlite3
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from agent_crossbar.domain.mcp import MCPServerCreate
@@ -45,7 +45,7 @@ class MCPStore:
 
     def create(self, value: MCPServerCreate) -> MCPServerRecord:
         server_id = f"mcp_{uuid.uuid4().hex[:16]}"
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             self._database.connection.execute(
                 """
@@ -96,7 +96,7 @@ class MCPStore:
         return [_server_from_row(row) for row in rows]
 
     def set_enabled(self, server_id: str, enabled: bool) -> MCPServerRecord:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with self._database.write_lock, self._database.connection:
             cursor = self._database.connection.execute(
                 """
@@ -157,7 +157,7 @@ class MCPStore:
         return _tool_from_row(row)
 
     def replace_tools(self, server_id: str, tools: list[MCPToolRecord]) -> None:
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         exposed_names = [tool.exposed_name for tool in tools]
         if len(exposed_names) != len(set(exposed_names)):
             raise ValueError("discovered MCP exposed tool names must be unique")
