@@ -127,7 +127,7 @@ jobs:
   clean-msi:
     name: clean windows MSI build + install
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     continue-on-error: true
     env:
       HAS_SIGNING_CERT: ${{ secrets.AGENT_CROSSBAR_PFX_BASE64 != '' }}
@@ -192,13 +192,25 @@ jobs:
           $msi = Get-ChildItem -Path src-tauri/target/release/bundle/msi/*.msi | Select-Object -First 1
           if (-not $msi) { throw "MSI not found" }
           Write-Host "Installing $($msi.FullName)"
-          $process = Start-Process msiexec.exe -ArgumentList @("/i", $msi.FullName, "/qn", "/norestart", "/l*v", "msi-install.log") -Wait -PassThru
+          $process = Start-Process msiexec.exe -ArgumentList @(
+            "/i", $msi.FullName, "/qn", "/norestart", "REBOOT=ReallySuppress", "/l*v", "msi-install.log"
+          ) -PassThru
+          if (-not $process.WaitForExit(600000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "msiexec did not finish within 10 minutes; see msi-install.log"
+          }
           if ($process.ExitCode -notin @(0, 3010)) { throw "msiexec install failed: $($process.ExitCode)" }
           $installed = Get-ChildItem "$env:LOCALAPPDATA/Programs" -Recurse -Filter "Agent Crossbar.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $installed) { throw "installed executable not found" }
           Write-Host "Installed: $($installed.FullName)"
           $installedPath = $installed.FullName
-          $uninstall = Start-Process msiexec.exe -ArgumentList @("/x", $msi.FullName, "/qn", "/norestart", "/l*v", "msi-uninstall.log") -Wait -PassThru
+          $uninstall = Start-Process msiexec.exe -ArgumentList @(
+            "/x", $msi.FullName, "/qn", "/norestart", "/l*v", "msi-uninstall.log"
+          ) -PassThru
+          if (-not $uninstall.WaitForExit(300000)) {
+            Stop-Process -Id $uninstall.Id -Force -ErrorAction SilentlyContinue
+            throw "msiexec uninstall did not finish within 5 minutes; see msi-uninstall.log"
+          }
           if ($uninstall.ExitCode -notin @(0, 3010)) { throw "msiexec uninstall failed: $($uninstall.ExitCode)" }
           if (Test-Path -LiteralPath $installedPath) { throw "executable still present after uninstall: $installedPath" }
           Write-Host "Uninstall removed the executable."
