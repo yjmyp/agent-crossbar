@@ -3,6 +3,7 @@
 - [`resume-agent-engineering.md`](resume-agent-engineering.md)：投 Agent 运行时 / 评测 / AI 应用开发。
 - [`resume-ai-security.md`](resume-ai-security.md)：投 Agent 安全 / DevTools / 代码安全 / AI 工程效率。
 - [`project-walkthrough.md`](project-walkthrough.md)：30 秒、2 分钟、8 分钟讲法，以及高频追问。
+- [`architecture-map.md`](architecture-map.md)：每个目录干什么、一次点击到一条结论的完整数据流。
 - [`video-script-3min.md`](video-script-3min.md)：3 分钟演示逐字稿与录制清单。
 - [`second-project-mcp-guard.md`](second-project-mcp-guard.md)：第二个旗舰项目 MCP Guard 的定位、边界、架构与 4 周 MVP。
 - [`second-project-agent-blackbox.md`](second-project-agent-blackbox.md)：已否决的 Agent Blackbox 选型记录。

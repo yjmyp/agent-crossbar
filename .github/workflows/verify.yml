@@ -44,7 +44,17 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Script tests (PowerShell helpers and provider-smoke selectors)
-        run: npx vitest run --config vitest.scripts.config.ts
+        shell: pwsh
+        run: |
+          npx vitest run --config vitest.scripts.config.ts --reporter=verbose 2>&1 |
+            Tee-Object -FilePath vitest-scripts.log
+          exit $LASTEXITCODE
+      - name: Upload script test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-scripts-log
+          path: vitest-scripts.log
 
   rust:
     runs-on: windows-latest
