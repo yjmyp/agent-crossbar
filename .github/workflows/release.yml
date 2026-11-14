@@ -1,0 +1,124 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  wheel:
+    name: build and sign wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign wheel keylessly
+        run: |
+          cosign sign-blob --yes dist/*.whl \
+            --output-signature dist/agent_crossbar.sig \
+            --output-certificate dist/agent_crossbar.pem
+      - name: Write checksums and install snippet
+        run: |
+          cd dist
+          sha256sum *.whl > SHA256SUMS.txt
+          cat > INSTALL.txt <<'TXT'
+          pipx install <wheel-url>
+          crossbar-security --help
+          TXT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*
+
+  installer:
+    name: build windows installer
+    runs-on: windows-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.AGENT_CROSSBAR_PFX_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build installer
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync
+          npm ci
+          npm run sidecar:build
+          npm run tauri build
+      - name: Sign installer (requires repository signing secrets)
+        if: env.HAS_SIGNING_CERT == 'true'
+        shell: pwsh
+        env:
+          AGENT_CROSSBAR_PFX_BASE64: ${{ secrets.AGENT_CROSSBAR_PFX_BASE64 }}
+          AGENT_CROSSBAR_PFX_PASSWORD: ${{ secrets.AGENT_CROSSBAR_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "agent-crossbar.pfx"
+          [System.IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:AGENT_CROSSBAR_PFX_BASE64))
+          $targets = @()
+          $targets += (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object FullName)
+          $targets += (Get-ChildItem "src-tauri/target/release/*.exe" | ForEach-Object FullName)
+          ./scripts/sign-windows.ps1 -Files $targets -PfxPath $pfx
+          ./scripts/verify-authenticode.ps1 $targets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+  publish:
+    name: publish draft release
+    needs: [wheel]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Flatten assets
+        run: |
+          mkdir -p release
+          find artifacts -maxdepth 2 -type f -exec cp {} release/ \;
+          ls -la release
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: release/*
+          body: |
+            ## Install
+
+            ```bash
+            pipx install <wheel-url-from-assets>
+            crossbar-security --help
+            ```
+
+            The wheel is signed with Sigstore. Verify with:
+
+            ```bash
+            cosign verify-blob --signature agent_crossbar.sig \
+              --certificate agent_crossbar.pem <wheel>
+            ```
+
+            The Windows MSI is signed with a production Authenticode certificate
+            only when the repository signing secrets are configured; otherwise it
+            is explicitly unsigned.

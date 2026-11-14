@@ -45,6 +45,8 @@ jobs:
           fi
           $PY -m pip install --upgrade pip
           $PY -m pip install dist/*.whl
+          echo "--- import origin must be the venv, not the checkout ---"
+          $PY -c "import agent_crossbar, pathlib, sys; p = pathlib.Path(agent_crossbar.__file__).resolve(); print(p); sys.exit(0 if '.clean' in p.parts else 1)"
           mkdir -p ci-sample
           cat > ci-sample/deploy.py <<'PY'
           import subprocess
@@ -81,11 +83,54 @@ jobs:
             work/demo/review.md
             work/demo/review.sarif
 
+  pipx-install:
+    name: clean windows pipx install
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+      - name: Install with pipx and run from PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --user pipx
+          python -m pipx install dist/*.whl
+          export PATH="$HOME/.local/bin:$PATH"
+          crossbar-security --help
+          mkdir -p pipx-sample
+          cat > pipx-sample/agent_tool.py <<'PY'
+          import subprocess
+
+          def run(request):
+              return subprocess.run("rm -rf " + request.args["path"], shell=True)
+          PY
+          set +e
+          crossbar-security --root pipx-sample --format sarif -o pipx-security.sarif
+          code=$?
+          set -e
+          test "$code" -eq 1
+          test -s pipx-security.sarif
+          python -c "import json; d=json.load(open('pipx-security.sarif', encoding='utf-8')); print('findings:', len(d['runs'][0]['results']))"
+      - name: Record installed location
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          which crossbar-security
+          python -m pipx list
+
   clean-msi:
     name: clean windows MSI build + install
     runs-on: windows-latest
     timeout-minutes: 60
     continue-on-error: true
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.AGENT_CROSSBAR_PFX_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -104,6 +149,43 @@ jobs:
         run: |
           npm run sidecar:build
           npm run tauri build
+      - name: Sign MSI and executable (only when a real certificate is configured)
+        if: env.HAS_SIGNING_CERT == 'true'
+        shell: pwsh
+        env:
+          AGENT_CROSSBAR_PFX_BASE64: ${{ secrets.AGENT_CROSSBAR_PFX_BASE64 }}
+          AGENT_CROSSBAR_PFX_PASSWORD: ${{ secrets.AGENT_CROSSBAR_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "agent-crossbar.pfx"
+          [System.IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:AGENT_CROSSBAR_PFX_BASE64))
+          $targets = @()
+          $targets += (Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object FullName)
+          $targets += (Get-ChildItem "src-tauri/target/release/*.exe" | ForEach-Object FullName)
+          if ($targets.Count -eq 0) { throw "no signing targets found" }
+          ./scripts/sign-windows.ps1 -Files $targets -PfxPath $pfx
+          foreach ($file in $targets) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file
+            Write-Host "$file -> $($signature.Status)"
+            if ($signature.Status -ne "Valid") { throw "signature is not valid: $file" }
+          }
+      - name: Record signature status
+        if: always()
+        shell: pwsh
+        run: |
+          $lines = @()
+          foreach ($file in Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            $lines += [pscustomobject]@{
+              path = $file.FullName
+              status = $signature.Status.ToString()
+              subject = $signature.SignerCertificate.Subject
+            }
+          }
+          $lines | ConvertTo-Json -Depth 3 | Set-Content signature-status.json
+          $lines | Format-Table | Out-String | Write-Host
+          if ($env:HAS_SIGNING_CERT -ne "true") {
+            Write-Host "::warning::No production Authenticode certificate configured; MSI is unsigned. See docs/verification/authenticode.md."
+          }
       - name: Install MSI silently
         shell: pwsh
         run: |
@@ -115,8 +197,11 @@ jobs:
           $installed = Get-ChildItem "$env:LOCALAPPDATA/Programs" -Recurse -Filter "Agent Crossbar.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $installed) { throw "installed executable not found" }
           Write-Host "Installed: $($installed.FullName)"
+          $installedPath = $installed.FullName
           $uninstall = Start-Process msiexec.exe -ArgumentList @("/x", $msi.FullName, "/qn", "/norestart", "/l*v", "msi-uninstall.log") -Wait -PassThru
           if ($uninstall.ExitCode -notin @(0, 3010)) { throw "msiexec uninstall failed: $($uninstall.ExitCode)" }
+          if (Test-Path -LiteralPath $installedPath) { throw "executable still present after uninstall: $installedPath" }
+          Write-Host "Uninstall removed the executable."
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -125,3 +210,4 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
             msi-install.log
             msi-uninstall.log
+            signature-status.json

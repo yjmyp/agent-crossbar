@@ -1,0 +1,65 @@
+name: 用户试用反馈
+description: 记录一次独立试用，不包含姓名或公司机密
+title: "[trial] "
+labels: ["user-trial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢试用。请不要粘贴密钥、客户数据或公司源码。
+        只记录你实际看到的报错和卡点。
+  - type: input
+    id: os
+    attributes:
+      label: 系统与版本
+      placeholder: Windows 11 23H2 / macOS 14.5 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: dropdown
+    id: background
+    attributes:
+      label: 你的背景
+      options:
+        - 有 Python/Node 经验
+        - 有开发经验但不熟 Python/Node
+        - 基本不写代码
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: 第一次成功耗时（分钟）
+      placeholder: "例如 12"
+    validations:
+      required: true
+  - type: textarea
+    id: stuck
+    attributes:
+      label: 卡在哪里
+      description: 第几步、你以为什么会发生、实际发生了什么
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: 报错原文
+      description: 直接粘贴，不要改写
+  - type: textarea
+    id: confusing
+    attributes:
+      label: 最难理解的词或页面
+      placeholder: 例如 sidecar、SARIF、豁免、执行节点
+  - type: textarea
+    id: fix
+    attributes:
+      label: 最该修的一件事
+    validations:
+      required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: 发布许可
+      options:
+        - label: 允许匿名引用这次反馈
+          required: false
+

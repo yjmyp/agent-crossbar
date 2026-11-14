@@ -34,14 +34,27 @@ jobs:
       - run: npm run test:run
       - run: npm run build
 
-  rust:
-    runs-on: ubuntu-22.04
+  node-scripts:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Tauri system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Script tests (PowerShell helpers and provider-smoke selectors)
+        run: npx vitest run --config vitest.scripts.config.ts
+
+  rust:
+    runs-on: windows-latest
+    env:
+      # MSVC chokes on the debug record for some C dependencies (ring) when the
+      # checkout path is long; tests do not need debug info.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
