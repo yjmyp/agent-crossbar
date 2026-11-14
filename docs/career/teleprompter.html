@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent Crossbar 3 分钟提词器</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        background: #080b10;
+        color: #f2f6fa;
+        font: 30px/1.7 "Microsoft YaHei", system-ui, sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        padding: 14px 24px;
+        background: #0e1520;
+        border-bottom: 1px solid #233043;
+        font-size: 20px;
+      }
+      button {
+        background: #4fd1c5;
+        color: #06201d;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 18px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      main { max-width: 1100px; margin: 0 auto; padding: 48px 32px 60vh; }
+      section { margin: 0 0 56px; }
+      .time { color: #4fd1c5; font-size: 22px; letter-spacing: .08em; }
+      h2 { font-size: 42px; margin: 4px 0 12px; }
+      p { margin: 0 0 18px; }
+      .boundary { color: #f6ad55; }
+      .small { color: #8b98a5; font-size: 20px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button id="toggle">开始滚动</button>
+      <span id="clock">03:00</span>
+      <span class="small">空格开始/暂停，R 重置</span>
+    </header>
+    <main id="main">
+      <section>
+        <div class="time">0:00–0:15</div>
+        <h2>这是 Agent Crossbar</h2>
+        <p>它解决的问题很具体：Agent 写完了代码，团队到底能不能交付。</p>
+        <p class="small">画面：本人 + 标题页。</p>
+      </section>
+      <section>
+        <div class="time">0:15–0:40</div>
+        <h2>先跑一次真实评审</h2>
+        <p>创建 AgentSpec，执行一次 run，再做安全评审。</p>
+        <p>这里命中了 shell=True，结论是 block；同时行为预算全部通过。</p>
+        <p>报告可以导出 Markdown 和 SARIF。</p>
+      </section>
+      <section>
+        <div class="time">0:40–1:10</div>
+        <h2>每条问题都能追到依据</h2>
+        <p>安全扫描不调用外部模型，源码不出本机。</p>
+        <p>每条问题都有中文标题、脱敏证据、CWE 和策略条款。</p>
+        <p>豁免必须写 owner、理由和到期时间，过期自动失效。</p>
+      </section>
+      <section>
+        <div class="time">1:10–1:40</div>
+        <h2>独立基准，不自己出题自己考</h2>
+        <p>两个公开漏洞项目，固定 commit，人工标注。</p>
+        <p>限定应用代码精确率 83.3%，召回率 71.4%。</p>
+        <p>整仓库精确率只有 16.7%，这个难看的数字也公开。</p>
+      </section>
+      <section>
+        <div class="time">1:40–2:10</div>
+        <h2>大仓库性能</h2>
+        <p>Django 3994 个文件约 34 秒，VS Code 6362 个文件约 51 秒。</p>
+        <p>过程中修掉了一个 O(n²) 源码切片热点，单文件从 1.8 秒降到 0.06 秒。</p>
+      </section>
+      <section>
+        <div class="time">2:10–2:40</div>
+        <h2 class="boundary">边界写清楚</h2>
+        <p class="boundary">它不是平台，不替代 LangSmith 或 Semgrep。</p>
+        <p class="boundary">它不是完整 SAST，不覆盖 XSS、XXE、XPath、NoSQL、认证与访问控制。</p>
+        <p class="boundary">3 个真实用户仍是 0 / 3，仓库不会把未完成写成完成。</p>
+      </section>
+      <section>
+        <div class="time">2:40–3:00</div>
+        <h2>收尾</h2>
+        <p>Agent Crossbar。每个结论，都能被一条命令复现。</p>
+        <p class="small">画面：本人 + 仓库地址。</p>
+      </section>
+    </main>
+    <script>
+      const clock = document.getElementById("clock");
+      const toggle = document.getElementById("toggle");
+      let remaining = 180;
+      let timer = null;
+
+      function render() {
+        const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const seconds = String(remaining % 60).padStart(2, "0");
+        clock.textContent = `${minutes}:${seconds}`;
+      }
+
+      function start() {
+        if (timer) return;
+        timer = setInterval(() => {
+          remaining = Math.max(0, remaining - 1);
+          window.scrollBy(0, 1);
+          render();
+          if (remaining === 0) stop();
+        }, 1000);
+        toggle.textContent = "暂停滚动";
+      }
+
+      function stop() {
+        clearInterval(timer);
+        timer = null;
+        toggle.textContent = "开始滚动";
+      }
+
+      toggle.addEventListener("click", () => (timer ? stop() : start()));
+      window.addEventListener("keydown", (event) => {
+        if (event.code === "Space") {
+          event.preventDefault();
+          timer ? stop() : start();
+        }
+        if (event.key.toLowerCase() === "r") {
+          stop();
+          remaining = 180;
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          render();
+        }
+      });
+      render();
+    </script>
+  </body>
+</html>

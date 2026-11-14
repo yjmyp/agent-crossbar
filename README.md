@@ -1,5 +1,9 @@
 # Agent Crossbar
 
+[![verify](https://github.com/yjmyp/agent-crossbar/actions/workflows/verify.yml/badge.svg)](https://github.com/yjmyp/agent-crossbar/actions/workflows/verify.yml)
+[![security](https://github.com/yjmyp/agent-crossbar/actions/workflows/security.yml/badge.svg)](https://github.com/yjmyp/agent-crossbar/actions/workflows/security.yml)
+[![release-smoke](https://github.com/yjmyp/agent-crossbar/actions/workflows/release-smoke.yml/badge.svg)](https://github.com/yjmyp/agent-crossbar/actions/workflows/release-smoke.yml)
+
 A local Agent engineering workbench for building, running, tracing, evaluating,
 and comparing Agent systems across runtime frameworks.
 
@@ -45,6 +49,16 @@ Windows 没有 `make` 时：
 uv sync
 .venv\Scripts\python.exe scripts\demo.py
 ```
+
+外部试用者一条命令跑完“安装 → 不安全样本 → demo → 生成报告”：
+
+```powershell
+uv run --with build python -m build --wheel -o build/wheels
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trial.ps1
+```
+
+只需要 Windows + Python 3.10+，不需要 Node、Rust、`uv`。验证过 Python 3.10
+全新 venv，63 秒通过。
 
 ### 独立基准，不自己出题自己考
 
@@ -194,6 +208,19 @@ See
 and [`docs/verification/release-readiness.md`](docs/verification/release-readiness.md)
 for the clean-environment wheel test and the explicit list of release items that
 are still blocked by missing certificates, VMs, or human users.
+
+See
+[`docs/verification/ci-release-smoke.md`](docs/verification/ci-release-smoke.md)
+for the GitHub-hosted clean Windows/Linux/macOS wheel smoke. Each runner builds
+the wheel, installs it into an empty venv, asserts the security gate exits 1 on a
+vulnerable sample, produces SARIF, and runs `scripts/demo.py`. The same workflow
+attempts an MSI build/install/uninstall on a clean Windows runner.
+
+See
+[`docs/verification/signing-readiness.md`](docs/verification/signing-readiness.md)
+for the Sigstore keyless signature and the remaining Authenticode blocker.
+See [`docs/trials/README.md`](docs/trials/README.md) for the human trial kit; the
+repository still records `0 / 3` human users rather than substituting CI runs.
 
 See
 [`docs/verification/agent-platform.md`](docs/verification/agent-platform.md)
