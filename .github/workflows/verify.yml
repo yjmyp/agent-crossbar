@@ -54,6 +54,11 @@ jobs:
           if ($code -ne 0) {
             $tail = (Get-Content vitest-scripts.log -Tail 12) -join " | "
             Write-Host "::error title=script-tests::$tail"
+            "## script test failure" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "``````" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            Get-Content vitest-scripts.log -Tail 40 |
+              Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "``````" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
           exit $code
       - name: Upload script test log
