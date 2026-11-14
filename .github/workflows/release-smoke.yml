@@ -194,14 +194,14 @@ jobs:
           if (-not $msi) { throw "MSI not found" }
           $target = Join-Path $env:RUNNER_TEMP "msi-extract"
           New-Item -ItemType Directory -Force -Path $target | Out-Null
-          $process = Start-Process msiexec.exe -ArgumentList @(
-            "/a", $msi.FullName, "/qn", "TARGETDIR=$target", "/l*v", "msi-extract.log"
-          ) -PassThru
-          if (-not $process.WaitForExit(300000)) {
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "administrative extract timed out"
-          }
-          if ($process.ExitCode -notin @(0, 3010)) { throw "administrative extract failed: $($process.ExitCode)" }
+          $sevenZip = @(
+            "C:\Program Files\7-Zip\7z.exe",
+            "C:\Program Files (x86)\7-Zip\7z.exe"
+          ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+          if (-not $sevenZip) { throw "7-Zip is required to inspect the MSI payload" }
+          Write-Host "Extracting with $sevenZip"
+          & $sevenZip x $msi.FullName "-o$target" -y | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "7z extract failed with exit code $LASTEXITCODE" }
           $exe = Get-ChildItem $target -Recurse -Filter "Agent Crossbar.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) { throw "MSI payload does not contain Agent Crossbar.exe" }
           $sidecar = Get-ChildItem $target -Recurse -Filter "agent-crossbar-sidecar*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
