@@ -27,6 +27,10 @@
 
 ## 证书到位后的操作
 
+申请免费/低成本开源签名的材料已写好：
+[`authenticode-application.md`](authenticode-application.md)。需要你补的只有
+许可证、真实身份和第一个 release。
+
 ```powershell
 # 1. 导出 PFX（私钥不要进仓库，不要进聊天记录）
 # 2. 配置仓库 secrets
