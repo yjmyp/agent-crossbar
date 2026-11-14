@@ -64,8 +64,21 @@ Ubuntu job 额外执行 `cosign sign-blob`，产出 keyless 签名与证书。
 - 检查安装后的 `Agent Crossbar.exe`
 - `msiexec /x ... /qn` 卸载
 
-**已知阻塞**：在 GitHub 托管 runner 上，`msiexec` 静默安装会挂起，原实现没有超时，
-两个 job 卡了 45 分钟。已改为 10 分钟硬超时 + 保留 `msi-install.log`。
+**已知阻塞（有日志）**：在 GitHub 托管 runner 上，`msiexec /i ... /qn` 静默安装
+会挂起。run `43593853704` 的 MSI job 在 10 分钟硬超时后失败，日志原文：
+
+```
+msiexec did not finish within 10 minutes; see msi-install.log
+```
+
+构建步骤本身是成功的（`Build sidecar and MSI` = success），所以不是编译问题，
+而是安装服务/环境问题。下一步是在真实 Windows 11 桌面上双击安装并抓
+`msi-install.log`，判断是安装包里的自定义动作还是 runner 限制。
+
+为了不把“装不上”变成“什么都没验证”，job 里新增了一步
+`Verify MSI payload by administrative extract`：用
+`msiexec /a ... TARGETDIR=...` 只解包不安装，然后断言包内同时存在
+`Agent Crossbar.exe` 和 sidecar。
 
 因此当前结论是：
 
