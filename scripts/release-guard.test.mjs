@@ -1,4 +1,4 @@
-import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -81,24 +81,33 @@ describe("release artifact guards", () => {
     const createdPath = path.join(root, "Agent Crossbar_0.1.0_x64_en-US.msi");
     const unrelatedPath = path.join(root, "bundle.log");
     await writeFile(existingPath, "previous build");
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-    const buildStartedAt = new Date();
-    await new Promise((resolve) => setTimeout(resolve, 1100));
     await writeFile(createdPath, "current build");
     await writeFile(unrelatedPath, "current build log");
 
-    const selected = runPowerShell(
+    const now = Date.now();
+    const buildStartedAt = new Date(now - 30_000);
+    await utimes(existingPath, new Date(now - 60_000), new Date(now - 60_000));
+    await utimes(createdPath, new Date(now - 10_000), new Date(now - 10_000));
+
+    const result = JSON.parse(
+      runPowerShell(
       [
         "$before = @($releaseTestArguments[1])",
-        `$startedAt = [datetime]::Parse('${buildStartedAt.toISOString()}', $null, [System.Globalization.DateTimeStyles]::RoundtripKind)`,
+        "$startedAt = [datetime]::Parse($releaseTestArguments[2], $null, [System.Globalization.DateTimeStyles]::RoundtripKind)",
         "$artifact = Select-SingleNewMsi -BundleDirectory $releaseTestArguments[0] -BeforePaths $before -BuildStartedAt $startedAt",
-        "$artifact.FullName",
-      ].join("; "),
+        "[pscustomobject]@{",
+        "selected = $artifact.Name",
+        "startedAt = $startedAt.ToString('o')",
+        "msi = @(Get-ChildItem $releaseTestArguments[0] -Filter *.msi | ForEach-Object { $_.Name + '@' + $_.LastWriteTimeUtc.ToString('o') })",
+        "} | ConvertTo-Json -Compress",
+      ].join("\n"),
       root,
       existingPath,
+        buildStartedAt.toISOString(),
+      ),
     );
 
-    expect(path.resolve(selected)).toBe(path.resolve(createdPath));
+    expect(result.selected).toBe(path.basename(createdPath));
   });
 
   it("accepts one MSI overwritten by the current bundle command", async () => {
@@ -108,22 +117,31 @@ describe("release artifact guards", () => {
       "Agent Crossbar_0.1.0_x64_en-US.msi",
     );
     await writeFile(installerPath, "previous build");
-    const buildStartedAt = new Date();
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-    await writeFile(installerPath, "current build");
 
-    const selected = runPowerShell(
+    const now = Date.now();
+    const buildStartedAt = new Date(now - 30_000);
+    await writeFile(installerPath, "current build");
+    await utimes(installerPath, new Date(now - 10_000), new Date(now - 10_000));
+
+    const result = JSON.parse(
+      runPowerShell(
       [
         "$before = @($releaseTestArguments[1])",
-        `$startedAt = [datetime]::Parse('${buildStartedAt.toISOString()}', $null, [System.Globalization.DateTimeStyles]::RoundtripKind)`,
+        "$startedAt = [datetime]::Parse($releaseTestArguments[2], $null, [System.Globalization.DateTimeStyles]::RoundtripKind)",
         "$artifact = Select-SingleNewMsi -BundleDirectory $releaseTestArguments[0] -BeforePaths $before -BuildStartedAt $startedAt",
-        "$artifact.FullName",
-      ].join("; "),
+        "[pscustomobject]@{",
+        "selected = $artifact.Name",
+        "startedAt = $startedAt.ToString('o')",
+        "msi = @(Get-ChildItem $releaseTestArguments[0] -Filter *.msi | ForEach-Object { $_.Name + '@' + $_.LastWriteTimeUtc.ToString('o') })",
+        "} | ConvertTo-Json -Compress",
+      ].join("\n"),
       root,
       installerPath,
+        buildStartedAt.toISOString(),
+      ),
     );
 
-    expect(path.resolve(selected)).toBe(path.resolve(installerPath));
+    expect(result.selected).toBe(path.basename(installerPath));
   });
 
   it("resolves the inbox Windows PowerShell used for Authenticode inspection", () => {
