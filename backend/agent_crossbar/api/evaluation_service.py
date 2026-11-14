@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from contextlib import suppress
 from datetime import datetime
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 
 from agent_crossbar.api.run_service import RunExecutor
 from agent_crossbar.domain.evaluation import EvaluationCase, EvaluationStatus
+from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType
 from agent_crossbar.domain.spec import AgentSpec
 from agent_crossbar.storage.evaluations import (
     EvaluationBatchRecord,
@@ -96,7 +98,7 @@ class EvaluationExecutor:
                 await self._execute_case(batch, spec, case)
 
             completed = self._evaluation_store.get_batch(batch.batch_id)
-            metrics = _metrics(completed)
+            metrics = _metrics(completed, run_store=self._run_store)
             gate_status = self._gate_status(completed, metrics)
             self._evaluation_store.finish_batch(
                 batch.batch_id,
@@ -111,7 +113,10 @@ class EvaluationExecutor:
                     batch.batch_id,
                     status=EvaluationStatus.CANCELLED,
                     gate_status="not_evaluated",
-                    metrics=_metrics(self._evaluation_store.get_batch(batch.batch_id)),
+                    metrics=_metrics(
+                        self._evaluation_store.get_batch(batch.batch_id),
+                        run_store=self._run_store,
+                    ),
                     error={"code": "evaluation_cancelled", "message": "评测任务已取消。"},
                 )
             raise
@@ -122,7 +127,10 @@ class EvaluationExecutor:
                     batch.batch_id,
                     status=EvaluationStatus.FAILED,
                     gate_status="not_evaluated",
-                    metrics=_metrics(self._evaluation_store.get_batch(batch.batch_id)),
+                    metrics=_metrics(
+                        self._evaluation_store.get_batch(batch.batch_id),
+                        run_store=self._run_store,
+                    ),
                     error={
                         "code": "evaluation_executor_error",
                         "message": "评测执行器意外终止。",
@@ -165,7 +173,8 @@ class EvaluationExecutor:
             )
             return
 
-        passed, failure_reason = _assert_output(case, terminal.output)
+        events = self._run_store.list_events(terminal.run_id)
+        passed, failure_reason = _assert_case(case, terminal.output, events)
         self._evaluation_store.update_case_result(
             batch.batch_id,
             case.case_id,
@@ -262,18 +271,158 @@ def batch_resource(record: EvaluationBatchRecord) -> EvaluationBatchResource:
     )
 
 
-def _assert_output(case: EvaluationCase, output: str) -> tuple[bool, str | None]:
+def _assert_case(
+    case: EvaluationCase,
+    output: str,
+    events: list[RuntimeEvent],
+) -> tuple[bool, str | None]:
     if case.assertion_type == "exact":
         if output.strip() == case.expected.strip():
             return True, None
         return False, f"期望输出“{case.expected}”，实际输出“{output}”。"
 
-    if re.search(case.expected, output, flags=re.MULTILINE):
-        return True, None
-    return False, f"输出未匹配正则表达式“{case.expected}”，实际输出“{output}”。"
+    if case.assertion_type == "regex":
+        if re.search(case.expected, output, flags=re.MULTILINE):
+            return True, None
+        return False, f"输出未匹配正则表达式“{case.expected}”，实际输出“{output}”。"
+
+    if case.assertion_type == "contains":
+        if case.expected in output:
+            return True, None
+        return False, f"输出不包含“{case.expected}”，实际输出“{output}”。"
+
+    if case.assertion_type == "not_contains":
+        if case.expected not in output:
+            return True, None
+        return False, f"输出不应包含“{case.expected}”，实际输出“{output}”。"
+
+    tool_names = _tool_names(events)
+    if case.assertion_type == "tool_called":
+        if case.expected.strip() in tool_names:
+            return True, None
+        return False, f"期望调用工具“{case.expected}”，实际调用 {tool_names}。"
+
+    if case.assertion_type == "tool_not_called":
+        if case.expected.strip() not in tool_names:
+            return True, None
+        return False, f"不应调用工具“{case.expected}”，实际调用 {tool_names}。"
+
+    if case.assertion_type == "tool_sequence":
+        expected = _parse_tool_sequence(case.expected)
+        if tuple(tool_names) == expected:
+            return True, None
+        return False, f"期望工具序列 {list(expected)}，实际序列 {tool_names}。"
+
+    if case.assertion_type == "max_tool_calls":
+        limit = int(case.expected)
+        if len(tool_names) <= limit:
+            return True, None
+        return False, f"工具调用 {len(tool_names)} 次，超过上限 {limit}。"
+
+    if case.assertion_type == "max_steps":
+        limit = int(case.expected)
+        steps = _step_count(events)
+        if steps <= limit:
+            return True, None
+        return False, f"执行 {steps} 步，超过上限 {limit}。"
+
+    if case.assertion_type == "no_error":
+        failures = [
+            event
+            for event in events
+            if event.type in {RuntimeEventType.TOOL_FAILED, RuntimeEventType.RUN_FAILED}
+        ]
+        if not failures and output.strip():
+            return True, None
+        if failures:
+            return False, f"运行中出现 {len(failures)} 个失败事件。"
+        return False, "运行没有产生有效输出。"
+
+    if case.assertion_type == "json_path":
+        try:
+            document = json.loads(output)
+        except ValueError:
+            return False, f"输出不是合法 JSON：“{output}”。"
+        payload = json.loads(case.expected)
+        path = str(payload["path"])
+        found, value = _read_json_path(document, path)
+        if "exists" in payload:
+            if found is payload["exists"]:
+                return True, None
+            return False, f"JSON 路径“{path}”存在性为 {found}，期望 {payload['exists']}。"
+        if not found:
+            return False, f"JSON 路径“{path}”不存在。"
+        if "equals" in payload:
+            if value == payload["equals"]:
+                return True, None
+            return False, f"JSON 路径“{path}”为 {value!r}，期望 {payload['equals']!r}。"
+        if isinstance(value, str) and payload["contains"] in value:
+            return True, None
+        return False, f"JSON 路径“{path}”的值不包含“{payload['contains']}”。"
+
+    return False, f"不支持的断言类型“{case.assertion_type}”。"
 
 
-def _metrics(batch: EvaluationBatchRecord) -> dict[str, Any]:
+def _parse_tool_sequence(value: str) -> tuple[str, ...]:
+    normalized = value.replace("->", ",").replace("→", ",")
+    return tuple(
+        item.strip()
+        for item in re.split(r"[,\s]+", normalized)
+        if item.strip()
+    )
+
+
+def _tool_names(events: list[RuntimeEvent]) -> list[str]:
+    names: list[str] = []
+    for event in events:
+        if event.type is not RuntimeEventType.TOOL_STARTED:
+            continue
+        name = event.payload.get("name")
+        if isinstance(name, str) and name.strip():
+            names.append(name.strip())
+    return names
+
+
+def _step_count(events: list[RuntimeEvent]) -> int:
+    steps = {event.step_id for event in events if event.step_id is not None}
+    return len(steps)
+
+
+def _read_json_path(document: Any, path: str) -> tuple[bool, Any]:
+    current = document
+    normalized = path.strip()
+    if normalized.startswith("$"):
+        normalized = normalized[1:]
+    for raw_part in normalized.split("."):
+        part = raw_part.strip()
+        if not part:
+            continue
+        index: int | None = None
+        key = part
+        if part.endswith("]"):
+            opening = part.rfind("[")
+            if opening > 0:
+                key = part[:opening]
+                try:
+                    index = int(part[opening + 1 : -1])
+                except ValueError:
+                    return False, None
+        if key:
+            if not isinstance(current, dict) or key not in current:
+                return False, None
+            current = current[key]
+        if index is not None:
+            if not isinstance(current, list) or index >= len(current) or index < -len(current):
+                return False, None
+            current = current[index]
+    return True, current
+
+
+def _metrics(
+    batch: EvaluationBatchRecord,
+    *,
+    run_store: RunStore | None = None,
+) -> dict[str, Any]:
     results = batch.results
     passed = sum(result.status == EvaluationStatus.PASSED for result in results)
     failed = sum(result.status == EvaluationStatus.FAILED for result in results)
@@ -282,6 +431,33 @@ def _metrics(batch: EvaluationBatchRecord) -> dict[str, Any]:
         result.latency_ms for result in results if result.latency_ms is not None
     ]
     total = len(results)
+    tool_calls = 0
+    model_turns = 0
+    input_tokens = 0
+    output_tokens = 0
+    cost_usd = 0.0
+    steps = 0
+    if run_store is not None:
+        for result in results:
+            if result.run_id is None:
+                continue
+            try:
+                events = run_store.list_events(result.run_id)
+            except Exception:
+                continue
+            tool_calls += sum(
+                event.type is RuntimeEventType.TOOL_STARTED for event in events
+            )
+            model_turns += sum(
+                event.type is RuntimeEventType.MODEL_COMPLETED for event in events
+            )
+            steps += _step_count(events)
+            for event in events:
+                if event.usage is not None:
+                    input_tokens += event.usage.input_tokens
+                    output_tokens += event.usage.output_tokens
+                if event.cost_usd is not None:
+                    cost_usd += float(event.cost_usd)
     return {
         "total_cases": total,
         "passed_cases": passed,
@@ -289,6 +465,15 @@ def _metrics(batch: EvaluationBatchRecord) -> dict[str, Any]:
         "error_cases": errors,
         "pass_rate": round(passed / total, 6) if total else 0,
         "average_latency_ms": round(sum(latencies) / len(latencies)) if latencies else None,
+        "total_tool_calls": tool_calls,
+        "average_tool_calls": round(tool_calls / total, 4) if total else 0,
+        "total_model_turns": model_turns,
+        "average_model_turns": round(model_turns / total, 4) if total else 0,
+        "total_steps": steps,
+        "average_steps": round(steps / total, 4) if total else 0,
+        "total_input_tokens": input_tokens,
+        "total_output_tokens": output_tokens,
+        "total_cost_usd": round(cost_usd, 6),
     }
 
 

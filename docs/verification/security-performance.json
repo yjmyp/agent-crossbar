@@ -1,0 +1,125 @@
+{
+  "generated_at": "2026-11-14T09:50:43.416828+00:00",
+  "engine_version": "0.1.0",
+  "environment": {
+    "system": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.15",
+    "cpu": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel"
+  },
+  "repositories": [
+    {
+      "id": "django",
+      "name": "Django",
+      "repo": "https://github.com/django/django.git",
+      "ref": "5.1.4",
+      "commit": "3e5887b9b1c1f06fabf96568a6ba7f19aeb9ad6d",
+      "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\perf-django",
+      "files_scanned": 3994,
+      "files_skipped": 2833,
+      "bytes_scanned": 25729580,
+      "engine_duration_ms": 34348.592,
+      "wall_duration_ms": 34365.131,
+      "files_per_second": 116.22,
+      "findings": 146,
+      "severity_counts": {
+        "critical": 2,
+        "high": 121,
+        "info": 1,
+        "low": 7,
+        "medium": 15
+      },
+      "gate_status": "blocked",
+      "top_rules": [
+        [
+          "CS-PY-004",
+          82
+        ],
+        [
+          "CS-JS-002",
+          37
+        ],
+        [
+          "CS-JS-004",
+          10
+        ],
+        [
+          "CS-PY-011",
+          7
+        ],
+        [
+          "CS-PY-010",
+          4
+        ],
+        [
+          "CS-PY-001",
+          1
+        ],
+        [
+          "CS-SECRET-008",
+          1
+        ],
+        [
+          "CS-SECRET-009",
+          1
+        ]
+      ],
+      "samples_ms": [
+        32943.003,
+        34365.131,
+        34655.774
+      ]
+    },
+    {
+      "id": "vscode",
+      "name": "Visual Studio Code",
+      "repo": "https://github.com/microsoft/vscode.git",
+      "ref": "1.95.0",
+      "commit": "912bb683695358a54ae0c670461738984cbb5b95",
+      "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\perf-vscode",
+      "files_scanned": 6362,
+      "files_skipped": 954,
+      "bytes_scanned": 77520592,
+      "engine_duration_ms": 51244.128,
+      "wall_duration_ms": 51276.404,
+      "files_per_second": 124.07,
+      "findings": 509,
+      "severity_counts": {
+        "high": 486,
+        "info": 2,
+        "medium": 21
+      },
+      "gate_status": "blocked",
+      "top_rules": [
+        [
+          "CS-JS-002",
+          411
+        ],
+        [
+          "CS-SECRET-009",
+          60
+        ],
+        [
+          "CS-JS-004",
+          21
+        ],
+        [
+          "CS-JS-001",
+          11
+        ],
+        [
+          "CS-JS-005",
+          4
+        ],
+        [
+          "CS-PY-000",
+          2
+        ]
+      ],
+      "samples_ms": [
+        51281.275,
+        51221.73,
+        51276.404
+      ]
+    }
+  ]
+}

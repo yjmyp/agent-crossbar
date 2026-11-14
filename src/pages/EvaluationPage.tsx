@@ -20,6 +20,7 @@ import type {
   EvaluationCase,
   EvaluationDatasetInput,
   EvaluationDatasetRecord,
+  EvaluationAssertionType,
 } from "../lib/bridge";
 import { errorMessage } from "../lib/errors";
 import { formatRelativeTime, shortId } from "../lib/format";
@@ -35,6 +36,44 @@ import { EmptyState, ErrorState, LoadingState } from "../components/ui/States";
 import { StatusBadge } from "../components/ui/StatusBadge";
 
 const terminalBatchStatuses = new Set(["completed", "failed", "cancelled"]);
+
+const assertionTypeOptions: EvaluationAssertionType[] = [
+  "exact",
+  "regex",
+  "contains",
+  "not_contains",
+  "json_path",
+  "tool_called",
+  "tool_not_called",
+  "tool_sequence",
+  "max_tool_calls",
+  "max_steps",
+  "no_error",
+];
+
+function expectedFieldLabel(type: EvaluationAssertionType): string {
+  if (type === "exact") return "期望结果";
+  if (type === "regex") return "期望正则表达式";
+  if (type === "json_path") return "JSON 路径断言";
+  if (type === "tool_sequence") return "期望工具序列";
+  if (type === "max_tool_calls") return "工具调用上限";
+  if (type === "max_steps") return "执行步数上限";
+  if (type === "no_error") return "期望值（填 true）";
+  return "期望文本或工具名";
+}
+
+function expectedFieldPlaceholder(type: EvaluationAssertionType): string {
+  if (type === "exact") return "输出必须与这段文本完全一致";
+  if (type === "regex") return "例如：^Echo:\\\\s+.+$";
+  if (type === "json_path")
+    return '{"path": "$.answer.total", "equals": 42}';
+  if (type === "tool_called" || type === "tool_not_called")
+    return "工具名称，例如 calculator";
+  if (type === "tool_sequence") return "例如：search -> calculator";
+  if (type === "max_tool_calls" || type === "max_steps") return "整数上限，例如 3";
+  if (type === "no_error") return "true";
+  return "期望包含或不包含的文本";
+}
 
 type DraftCase = EvaluationCase;
 
@@ -402,18 +441,16 @@ export function EvaluationPage({
                           value={item.assertion_type}
                           onChange={(event) =>
                             updateCase(index, {
-                              assertion_type: event.target.value as
-                                | "exact"
-                                | "regex",
+                              assertion_type: event.target
+                                .value as EvaluationAssertionType,
                             })
                           }
                         >
-                          <option value="exact">
-                            {assertionTypeLabel("exact")}
-                          </option>
-                          <option value="regex">
-                            {assertionTypeLabel("regex")}
-                          </option>
+                          {assertionTypeOptions.map((type) => (
+                            <option value={type} key={type}>
+                              {assertionTypeLabel(type)}
+                            </option>
+                          ))}
                         </select>
                       </label>
                       <label className="field">
@@ -442,11 +479,7 @@ export function EvaluationPage({
                         />
                       </label>
                       <label className="field field--full">
-                        <span>
-                          {item.assertion_type === "exact"
-                            ? "期望结果"
-                            : "期望正则表达式"}
-                        </span>
+                        <span>{expectedFieldLabel(item.assertion_type)}</span>
                         <textarea
                           aria-label={`期望结果 ${index + 1}`}
                           value={item.expected}
@@ -454,11 +487,9 @@ export function EvaluationPage({
                             updateCase(index, { expected: event.target.value })
                           }
                           rows={2}
-                          placeholder={
-                            item.assertion_type === "exact"
-                              ? "输出必须与这段文本完全一致"
-                              : "例如：^Echo:\\\\s+.+$"
-                          }
+                          placeholder={expectedFieldPlaceholder(
+                            item.assertion_type,
+                          )}
                         />
                       </label>
                     </div>
@@ -793,6 +824,16 @@ function BatchCard({
           value={formatLatency(batch.metrics.average_latency_ms)}
           detail="每个用例真实运行"
         />
+        <Metric
+          label="平均工具调用"
+          value={formatNumber(batch.metrics.average_tool_calls)}
+          detail={`共 ${batch.metrics.total_tool_calls ?? 0} 次`}
+        />
+        <Metric
+          label="平均执行步数"
+          value={formatNumber(batch.metrics.average_steps)}
+          detail={`共 ${batch.metrics.total_steps ?? 0} 步`}
+        />
       </div>
 
       {batch.metrics.pass_rate_delta !== undefined ? (
@@ -941,6 +982,11 @@ function formatLatency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   if (value < 1000) return `${value} 毫秒`;
   return `${(value / 1000).toFixed(2)} 秒`;
+}
+
+function formatNumber(value: number | undefined): string {
+  if (value === undefined || !Number.isFinite(value)) return "—";
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
 function formatDelta(value: number): string {

@@ -59,6 +59,9 @@ try {
     Invoke-Stage "Python tests" {
         & $python -m pytest backend -q
     }
+    Invoke-Stage "Security gate" {
+        & $python -m agent_crossbar.security.cli --root backend/agent_crossbar --format sarif -o work\security.sarif
+    }
     Invoke-Stage "Rust formatting" {
         & $cargo fmt --manifest-path src-tauri\Cargo.toml -- --check
     }

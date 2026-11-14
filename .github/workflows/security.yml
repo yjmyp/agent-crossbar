@@ -1,0 +1,32 @@
+name: security
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Run Agent Crossbar security gate
+        run: |
+          mkdir -p work
+          uv run python -m agent_crossbar.security.cli \
+            --root backend/agent_crossbar \
+            --format sarif \
+            --output work/crossbar-security.sarif
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: work/crossbar-security.sarif

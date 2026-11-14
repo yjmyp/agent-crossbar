@@ -1,7 +1,13 @@
 # Agent Crossbar
 
-Agent Crossbar is a local-first desktop control plane for building, running,
-inspecting, evaluating, and comparing Agent systems across runtime frameworks.
+A local Agent engineering workbench for building, running, tracing, evaluating,
+and comparing Agent systems across runtime frameworks.
+
+Agent Crossbar is deliberately scoped as a single-operator desktop workbench.
+It is not a hosted Agent platform, a multi-tenant service, a distributed
+scheduler, or a replacement for LangSmith, Langfuse, or Dify. The stronger claim
+is narrower and testable: every run, trace, assertion, retrieval result, and
+release boundary is inspectable on one machine.
 
 The Windows application is packaged as a native Tauri executable with an
 authenticated Python sidecar. Run history, normalized events, and immutable
@@ -9,6 +15,71 @@ agent specifications are stored locally in SQLite WAL mode.
 
 The product and architecture specification is in
 [`docs/superpowers/specs/2026-11-02-agent-crossbar-design.md`](docs/superpowers/specs/2026-11-02-agent-crossbar-design.md).
+
+## 先看结论：这次改动能不能交付
+
+Agent Crossbar 的交付闸门把三件事合成一个可解释的结论：
+
+1. **本地确定性扫描**：31 条规则覆盖密钥、命令执行、动态代码执行、SQL/路径注入、
+   TLS 关闭、弱哈希、危险配置等；扫描全程不调用外部模型，源码与证据不出本机。
+2. **行为预算**：把一次真实 run 的模型轮次、工具调用、Token、时长和禁用工具
+   与策略逐项对照，超限直接阻断。
+3. **责任豁免**：每条豁免必须有 `owner`、理由和到期时间；撤销后风险重新计入阻断。
+
+结论只有三种：`block`（不要合并）、`fix`（可合并，建议先修）、`ship`（可以交付）。
+报告可导出 Markdown，也可输出 SARIF 到 GitHub Code Scanning。
+
+```bash
+# 三分钟：对一个仓库做一次评审
+pipx install .
+crossbar-security --root /path/to/company-service --format sarif -o security.sarif
+
+# 十分钟：完整跑通 spec -> run -> 安全评审 -> Markdown/SARIF
+make bootstrap
+make demo
+```
+
+Windows 没有 `make` 时：
+
+```powershell
+uv sync
+.venv\Scripts\python.exe scripts\demo.py
+```
+
+### 独立基准，不自己出题自己考
+
+标签来自两个公开漏洞项目源码的人工标注，固定 commit，扫描器不参与生成标签：
+
+| 口径 | 命中 | 误报 | 精确率 | 召回率 |
+| --- | --- | --- | --- | --- |
+| 限定应用代码 | 5 | 1 | 83.3% | 71.4% |
+| 整仓库不过滤 | 5 | 25 | 16.7% | 71.4% |
+
+整仓库会把 `jquery.min.js`、教程、示例证书和测试脚本算进来。两个数字都公开，
+因为只报好看的那个就是自欺。当前明确不覆盖：XSS、XXE、XPath 注入、NoSQL 注入、
+认证与访问控制。完整报告与复现命令见
+[`docs/verification/security-benchmark.md`](docs/verification/security-benchmark.md)。
+
+边界必须说清：这是一个**本地单操作员工作台**，不是多租户平台、调度器或
+LangSmith/Langfuse/Dify 的替代品。安全闸门是确定性的规则闸门，不是完整 SAST，
+不能替代人工审计。**3 名外部用户的独立跑通记录尚未完成**，README 不会把它写成已完成。
+
+## 架构
+
+```text
+Tauri shell (Windows)
+  └─ authenticated FastAPI sidecar (127.0.0.1 + per-launch token)
+       ├─ api/       HTTP routes, SSE, auth
+       ├─ domain/    immutable AgentSpec, events, evaluation assertions
+       ├─ runtime/   native / LangGraph / review / structured adapters, MCP, workers
+       ├─ security/  deterministic engine + policy + waivers + verdict
+       └─ storage/   SQLite WAL (runs, events, evals, reviews, waivers)
+React UI  ← SSE / REST →  sidecar
+```
+
+一次 run 的路径：`AgentSpec (SHA-256) → run_service → runtime adapter loop →
+normalized events + sequence → SQLite → SSE → terminal state → evaluation /
+security review can cite the same run`。
 
 ## Current capability
 
@@ -58,12 +129,20 @@ and evaluation milestones:
 - Evidence-based comparison of two distinct terminal runs, including duration,
   events, model turns, tool calls, token usage, cost, model profile, approval
   mode, and persisted text outputs.
-- Immutable, versioned evaluation datasets with exact-match and regular
-  expression assertions.
+- Immutable, versioned evaluation datasets with 11 assertion types: exact,
+  regex, contains, not_contains, json_path, tool_called, tool_not_called,
+  tool_sequence, max_tool_calls, max_steps, and no_error.
 - Evaluation batches that create a real run for every case and report pass
   rate, failures, execution errors, average latency, and per-case evidence.
 - Historical baseline selection and pass-rate regression gates for evaluation
   batches that use the same dataset.
+- A first-class security gate with 31 deterministic rules, Chinese rule titles,
+  clause citations, redacted evidence, a three-state verdict, and Markdown/SARIF
+  export. The scanner runs locally and records whether any source left the machine.
+- Owner-scoped, time-limited risk waivers. Expired or revoked waivers are not
+  applied; every finding records which clause justifies it.
+- Run-linked behaviour budgets: completed status, total tokens, duration, tool
+  calls, and forbidden tools are checked against the same policy that blocks code.
 - Authenticode status inspection and a signing pipeline for the desktop,
   sidecar, and installer.
 - Tauri Minisign update verification with version binding, downgrade rejection,
@@ -88,6 +167,35 @@ cluster. Production telemetry, commercial licensing, organization
 administration, and operational support are also not included.
 
 See
+[`docs/verification/real-model-e2e.md`](docs/verification/real-model-e2e.md)
+for an external-model run with a real `knowledge_search` call, provider token
+usage, normalized trace, and an API-key persistence check.
+
+See
+[`docs/verification/security-gate.md`](docs/verification/security-gate.md)
+for the security gate API, verdict semantics, waiver model, egress boundary,
+demo output, and the explicit list of what is still missing.
+
+See
+[`docs/verification/rag-benchmark.md`](docs/verification/rag-benchmark.md)
+for the reproducible 24-document, 72-query lexical/vector/hybrid benchmark,
+including R@1, R@3, R@5, MRR, P50/P95 latency, corpus hash, and per-query-type
+results. The corpus and ground truth are shipped in this repository.
+
+See
+[`docs/verification/security-performance.md`](docs/verification/security-performance.md)
+for large-repository scans at pinned commits: Django 5.1.4 (3,994 files,
+34.4 s) and VS Code 1.95.0 (6,362 files, 51.3 s). The same run exposed and
+fixed an O(n²) source-segment hotspot; a 100 KB Python file dropped from
+1.8 s to 0.06 s. Timings are warm-cache, single-process, and not a scale claim.
+
+See
+[`docs/verification/packaging-clean-env.md`](docs/verification/packaging-clean-env.md)
+and [`docs/verification/release-readiness.md`](docs/verification/release-readiness.md)
+for the clean-environment wheel test and the explicit list of release items that
+are still blocked by missing certificates, VMs, or human users.
+
+See
 [`docs/verification/agent-platform.md`](docs/verification/agent-platform.md)
 for the MCP, hybrid retrieval, private Worker, multi-agent, adapter-matrix,
 signature/update attack-test, responsive desktop, and per-user MSI installation
@@ -110,6 +218,13 @@ in
 [`docs/verification/vertical-slice-1.md`](docs/verification/vertical-slice-1.md)
 with its tested capability boundary and known limitations.
 
+## Evidence boundary
+
+Every metric in this repository comes from a script or test in this repository.
+Metrics from separate projects, including the `ai-learning/rag2` evaluation
+set, are not claims about Agent Crossbar and must not be combined with the
+Crossbar retrieval benchmark in one resume bullet.
+
 ## Development
 
 ```powershell
@@ -123,6 +238,21 @@ npm run tauri dev
 ```powershell
 npm run verify
 ```
+
+GitHub Actions runs Python, Node, and Rust checks in
+[`.github/workflows/verify.yml`](.github/workflows/verify.yml), and uploads the
+security gate's SARIF output in
+[`.github/workflows/security.yml`](.github/workflows/security.yml).
+
+## Reproduce the security benchmark
+
+```bash
+python scripts/security-benchmark.py --prepare
+```
+
+The script clones the pinned DSVW and OWASP NodeGoat commits into
+`.bench-cache/`, scans them, and overwrites
+`docs/verification/security-benchmark.{json,md}`.
 
 Build the packaged sidecar and desktop installer:
 

@@ -18,6 +18,15 @@ _SEMANTIC_VERSION = re.compile(
 )
 
 
+def _parse_tool_sequence(value: str) -> tuple[str, ...]:
+    normalized = value.replace("->", ",").replace("→", ",")
+    return tuple(
+        item.strip()
+        for item in re.split(r"[,\s]+", normalized)
+        if item.strip()
+    )
+
+
 class EvaluationStatus(str, Enum):
     QUEUED = "queued"
     PENDING = "pending"
@@ -33,7 +42,19 @@ class EvaluationCase(DomainModel):
     case_id: str = Field(pattern=_CASE_ID.pattern, min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=120)
     input: str = Field(min_length=1, max_length=100_000)
-    assertion_type: Literal["exact", "regex"] = "exact"
+    assertion_type: Literal[
+        "exact",
+        "regex",
+        "contains",
+        "not_contains",
+        "json_path",
+        "tool_called",
+        "tool_not_called",
+        "tool_sequence",
+        "max_tool_calls",
+        "max_steps",
+        "no_error",
+    ] = "exact"
     expected: str = Field(min_length=1, max_length=100_000)
     tags: tuple[str, ...] = ()
 
@@ -54,6 +75,45 @@ class EvaluationCase(DomainModel):
                 re.compile(self.expected, flags=re.MULTILINE)
             except re.error as error:
                 raise ValueError(f"expected must be a valid regular expression: {error}") from error
+        elif self.assertion_type == "json_path":
+            try:
+                payload = json.loads(self.expected)
+            except ValueError as error:
+                raise ValueError(
+                    "expected must be a JSON object for json_path assertions"
+                ) from error
+            if not isinstance(payload, dict):
+                raise ValueError("expected must be a JSON object for json_path assertions")
+            path = payload.get("path")
+            if not isinstance(path, str) or not path.strip():
+                raise ValueError("json_path assertions require a non-empty path")
+            operators = [key for key in ("equals", "exists", "contains") if key in payload]
+            if len(operators) != 1:
+                raise ValueError(
+                    "json_path assertions require exactly one of equals, exists, or contains"
+                )
+            if "exists" in payload and not isinstance(payload["exists"], bool):
+                raise ValueError("json_path exists must be a boolean")
+        elif self.assertion_type in {"tool_sequence"}:
+            if not _parse_tool_sequence(self.expected):
+                raise ValueError("expected must contain at least one tool name")
+        elif self.assertion_type in {"max_tool_calls", "max_steps"}:
+            try:
+                limit = int(self.expected)
+            except ValueError as error:
+                raise ValueError(
+                    f"expected must be an integer for {self.assertion_type}"
+                ) from error
+            if limit < 0:
+                raise ValueError(f"expected must be nonnegative for {self.assertion_type}")
+        elif self.assertion_type == "no_error":
+            if self.expected.strip().lower() not in {"true", "1", "yes"}:
+                raise ValueError("expected must be true for no_error assertions")
+        elif (
+            self.assertion_type in {"tool_called", "tool_not_called"}
+            and not self.expected.strip()
+        ):
+            raise ValueError(f"expected must name a tool for {self.assertion_type}")
         return self
 
 

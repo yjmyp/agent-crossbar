@@ -31,3 +31,12 @@ output/
 .build/
 src-tauri/binaries/
 
+
+.bench-cache/
+
+
+work/
+build/
+outputs/
+crossbar-video-*/
+

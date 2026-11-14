@@ -6,6 +6,8 @@ from time import monotonic, sleep
 import httpx
 import pytest
 from agent_crossbar.api.app import AppSettings, create_app
+from agent_crossbar.api.evaluation_service import _assert_case
+from agent_crossbar.domain.evaluation import EvaluationCase
 from agent_crossbar.runtime.catalog import ProviderCatalog
 from fastapi.testclient import TestClient
 
@@ -264,3 +266,99 @@ def test_evaluation_routes_require_authentication(client: TestClient) -> None:
     response = client.get("/v1/evaluation/datasets")
 
     assert response.status_code == 401
+
+
+def test_trajectory_assertions_score_tool_calls_and_limits(client: TestClient) -> None:
+    spec_response = client.post(
+        "/v1/specs",
+        headers=_AUTHORIZATION,
+        json={
+            "name": "Trajectory Evaluation",
+            "version": "1.0.0",
+            "instructions": "Use calculator.",
+            "model_profile": "local.tool-demo",
+            "tools": [{"name": "calculator", "description": "Calculate."}],
+        },
+    )
+    assert spec_response.status_code == 201
+    spec = spec_response.json()
+    dataset_response = client.post(
+        "/v1/evaluation/datasets",
+        headers=_AUTHORIZATION,
+        json={
+            "name": "轨迹断言集",
+            "version": "1.0.0",
+            "description": "验证工具调用、步数与错误断言。",
+            "cases": [
+                {
+                    "case_id": "contains",
+                    "name": "包含工具结果",
+                    "input": "alpha",
+                    "assertion_type": "contains",
+                    "expected": "4",
+                },
+                {
+                    "case_id": "tool-called",
+                    "name": "调用了计算器",
+                    "input": "alpha",
+                    "assertion_type": "tool_called",
+                    "expected": "calculator",
+                },
+                {
+                    "case_id": "tool-sequence",
+                    "name": "工具序列",
+                    "input": "alpha",
+                    "assertion_type": "tool_sequence",
+                    "expected": "calculator",
+                },
+                {
+                    "case_id": "max-tool-calls",
+                    "name": "工具次数上限",
+                    "input": "alpha",
+                    "assertion_type": "max_tool_calls",
+                    "expected": "1",
+                },
+                {
+                    "case_id": "no-error",
+                    "name": "无失败事件",
+                    "input": "alpha",
+                    "assertion_type": "no_error",
+                    "expected": "true",
+                },
+            ],
+        },
+    )
+    assert dataset_response.status_code == 201, dataset_response.text
+    dataset = dataset_response.json()
+
+    started = client.post(
+        "/v1/evaluation/batches",
+        headers=_AUTHORIZATION,
+        json={
+            "dataset_id": dataset["dataset_id"],
+            "agent_id": spec["agent_id"],
+            "version": "1.0.0",
+        },
+    )
+    batch = wait_for_batch(client, started.json()["batch_id"])
+
+    assert batch["metrics"]["pass_rate"] == 1
+    assert batch["metrics"]["total_tool_calls"] == 5
+    assert batch["metrics"]["average_tool_calls"] == 1
+    assert batch["metrics"]["total_model_turns"] == 10
+    assert batch["metrics"]["average_steps"] > 0
+
+
+def test_json_path_assertion_supports_nested_values() -> None:
+    case = EvaluationCase(
+        case_id="json-path",
+        name="嵌套 JSON",
+        input="ignored",
+        assertion_type="json_path",
+        expected='{"path": "$.answer.total", "equals": 42}',
+    )
+
+    passed, reason = _assert_case(case, '{"answer": {"total": 42}}', [])
+
+    assert passed is True
+    assert reason is None

@@ -1,10 +1,16 @@
 # Agent Platform Verification
 
-**Verified:** 2026-11-11
+**Verified:** 2026-11-14
 
 **Release status:** engineering preview
 
 **Production ready:** no
+
+**Product scope:** local single-operator Agent engineering workbench
+
+This record covers a desktop workbench, not a hosted multi-tenant Agent
+platform. The Worker pool is a bounded private execution pool, not a global
+scheduler or a distributed cluster.
 
 ## Claim
 
@@ -30,6 +36,15 @@ credentials, a Tauri update key pair, an HTTPS update service, commercial
 licensing, organization administration, production telemetry, and operational
 support are not supplied in this workspace.
 
+## Reproducible evidence added after the milestone
+
+- [Real external model end-to-end](real-model-e2e.md): external provider call,
+  two model turns, one `knowledge_search` call, hybrid retrieval, provider token
+  usage, and a SQLite API-key absence check.
+- [Retrieval benchmark](rag-benchmark.md): 24 shipped synthetic documents, 72
+  ground-truth queries, lexical/vector/hybrid comparison, R@1/R@3/R@5, MRR, and
+  P50/P95 latency.
+
 ## Latest quality gate
 
 Command:
@@ -46,10 +61,10 @@ Observed result: exit code `0`.
 | --- | --- |
 | TypeScript typecheck | passed |
 | ESLint | passed |
-| Vitest | 13 files, 67 tests passed |
+| Vitest | 13 files, 68 tests passed |
 | Vite production build | passed |
 | Ruff | passed |
-| Python/pytest | 198 tests passed |
+| Python/pytest | 203 tests passed |
 | Rust library tests | 25 passed |
 | Rust updater-verifier tests | 3 passed |
 | Rust `cargo check` | passed |
@@ -67,7 +82,7 @@ is the latest superseding platform record.
 | Capability | Implemented behavior | Explicit boundary |
 | --- | --- | --- |
 | MCP | stdio and HTTP transports; atomic server replacement; paged discovery; stable server-namespaced names; enable/disable; explicit schema and allowlist checks; 15-second discovery/tool timeout; 500-tool and 100,000-character output limits; plain HTTP is accepted only on loopback | Remote OAuth/browser authentication, organization-wide MCP registries, process sandboxing, and automatic trust-on-first-use are not part of this preview. Remote MCP endpoints must use HTTPS. stdio servers require a locally installed command and explicitly named environment variables. |
-| Knowledge retrieval | Local deterministic 1,000-character chunks with 120-character overlap; SQLite FTS5 BM25; OpenAI-compatible embeddings stored as little-endian float32 vectors; local cosine similarity; RRF fusion (`k=60`); exact-substring fallback; document/chunk/source citations; effective `lexical`, `vector`, or `hybrid` mode; index model/dimension staleness and rebuild controls | Missing or failed embedding configuration degrades truthfully to lexical retrieval. There is no reranker, OCR, remote connector, permission-aware corpus, or production retrieval-quality benchmark in this preview. |
+| Knowledge retrieval | Local deterministic 1,000-character chunks with 120-character overlap; SQLite FTS5 BM25 with CJK trigram fallback; OpenAI-compatible embeddings stored as little-endian float32 vectors; local cosine similarity; forced `lexical`, `vector`, or `hybrid` evaluation modes; RRF fusion (`k=60`); document/chunk/source citations; index model/dimension staleness and rebuild controls | Missing or failed embedding configuration degrades truthfully to lexical retrieval. The checked-in synthetic benchmark is not a production or customer-corpus benchmark. There is no reranker, OCR, remote connector, or permission-aware corpus in this preview. |
 | Multi-agent | Model-directed `delegate_agent` in `supervisor` mode; only immutable AgentSpec-authorized member versions; self-delegation blocked; maximum depth 3; root-configured total-agent limit; parent/child runs; terminal child result returned to the parent; delegation and child lifecycle events. The `handoff` and `group` modes were removed because they shared the same runtime behavior as `supervisor`. | This is bounded supervised delegation, not an arbitrary distributed swarm runtime, group-chat protocol, A2A federation, remote worker pool, or cross-machine scheduler. |
 | Private Workers | Explicitly registered operator-controlled nodes; exact `agent_id@version` authorization; HTTPS outside loopback development; independent Credential Manager secrets; bounded per-Worker concurrency and request timeout; cached health probes; least-loaded, round-robin selection; failover to the next enabled Worker on retryable timeout/disconnect/5xx failures; cancellation; structured failure handling; remote events copied into the parent trace | This is a private operator-managed execution pool, not public Agent federation, arbitrary peer discovery, a global scheduler, or an arbitrary distributed cluster. Failover starts a new child run, so it needs headroom under the root `max_agents` budget; the control plane does not host or sandbox the remote Agent process. |
 | Runtime adapters | `native`; real LangGraph `StateGraph` model/tool conditional loop; `structured` with Draft 2020-12 JSON Schema validation; `review` backed by the native runtime | Runtime checkpoints remain adapter-owned. Cross-framework checkpoint portability, process/container isolation, and adapters for LlamaIndex, OpenAI Agents SDK, CrewAI, Google ADK, Microsoft Agent Framework, or PydanticAI are not shipped. |

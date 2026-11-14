@@ -11,6 +11,7 @@ import { CommandCenterPage } from "./pages/CommandCenterPage";
 import { ComparePage } from "./pages/ComparePage";
 import { EvaluationPage } from "./pages/EvaluationPage";
 import { RegistryPage } from "./pages/RegistryPage";
+import { SecurityPage } from "./pages/SecurityPage";
 import { RunCenterPage } from "./pages/RunCenterPage";
 import { RunDetailPage } from "./pages/RunDetailPage";
 import { TraceExplorerPage } from "./pages/TraceExplorerPage";
@@ -34,6 +35,7 @@ const sectionTitles: Record<string, string> = {
   compare: "运行对比",
   evaluation: "评测实验室",
   registry: "能力注册中心",
+  security: "安全评审",
   workers: "私有执行节点",
 };
 
@@ -182,6 +184,9 @@ function RouteView({
   if (route === "/workers") {
     return <WorkersPage bridge={bridge} navigate={navigate} />;
   }
+  if (route === "/security") {
+    return <SecurityPage bridge={bridge} navigate={navigate} />;
+  }
   return <CommandCenterPage bridge={bridge} navigate={navigate} />;
 }
 
@@ -205,6 +210,7 @@ function routeSection(route: string): string {
   if (route === "/evaluation") return "evaluation";
   if (route === "/registry") return "registry";
   if (route === "/workers") return "workers";
+  if (route === "/security") return "security";
   return "overview";
 }
 

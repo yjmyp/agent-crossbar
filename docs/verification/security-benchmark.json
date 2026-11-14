@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "generated_at": "2026-11-13T20:31:41.438209+00:00",
+  "engine_version": "0.1.0",
+  "repositories": [
+    {
+      "id": "dsvw",
+      "name": "DSVW (Damn Small Vulnerable Web)",
+      "repo": "https://github.com/stamparm/DSVW.git",
+      "commit": "9ca3c9acf3defa0a6148d40e5f5cebeb5dcbb908",
+      "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\dsvw",
+      "scanned_files": 10,
+      "duration_ms": 452.292,
+      "raw": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "scoped": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "labels": {
+        "dsvw.py": [
+          22,
+          27,
+          29,
+          31
+        ]
+      },
+      "label_families": {
+        "dsvw.py:22": "SQL injection via request parameter concatenation",
+        "dsvw.py:27": "Unsafe pickle deserialization of request data",
+        "dsvw.py:29": "Path traversal / SSRF via request-controlled path",
+        "dsvw.py:31": "OS command injection via shell=True"
+      },
+      "not_covered": [
+        "reflected XSS",
+        "XXE",
+        "XPath injection"
+      ]
+    },
+    {
+      "id": "nodegoat",
+      "name": "OWASP NodeGoat",
+      "repo": "https://github.com/OWASP/NodeGoat.git",
+      "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
+      "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\nodegoat",
+      "scanned_files": 92,
+      "duration_ms": 459.509,
+      "raw": {
+        "findings": 28,
+        "true_positive_findings": 3,
+        "false_positive_findings": 25,
+        "precision": 0.1071,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [
+          "Gruntfile.js",
+          "README.md",
+          "app/assets/vendor/chart/raphael-min.js",
+          "app/assets/vendor/html5shiv.js",
+          "app/assets/vendor/jquery.min.js",
+          "app/routes/contributions.js",
+          "app/views/tutorial/a1.html",
+          "artifacts/cert/server.key",
+          "test/e2e/support/commands.js"
+        ],
+        "false_positives": [
+          {
+            "file": "README.md",
+            "line": 61,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "README.md",
+            "line": 135,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "artifacts/cert/server.key",
+            "line": 1,
+            "rule_id": "CS-SECRET-004"
+          },
+          {
+            "file": "Gruntfile.js",
+            "line": 165,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 4,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 5,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 6,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/routes/contributions.js",
+            "line": 31,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 56,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 70,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 73,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 82,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 129,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 136,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 154,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 156,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 157,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 158,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 159,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "test/e2e/support/commands.js",
+            "line": 30,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/assets/vendor/chart/raphael-min.js",
+            "line": 10,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/html5shiv.js",
+            "line": 5,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/html5shiv.js",
+            "line": 6,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 4,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 5,
+            "rule_id": "CS-JS-004"
+          }
+        ]
+      },
+      "scoped": {
+        "findings": 4,
+        "true_positive_findings": 3,
+        "false_positive_findings": 1,
+        "precision": 0.75,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [
+          "app/routes/contributions.js"
+        ],
+        "false_positives": [
+          {
+            "file": "app/routes/contributions.js",
+            "line": 31,
+            "rule_id": "CS-JS-001"
+          }
+        ]
+      },
+      "labels": {
+        "app/routes/contributions.js": [
+          32,
+          33,
+          34
+        ]
+      },
+      "label_families": {
+        "app/routes/contributions.js:32": "Server-side JavaScript injection through eval()",
+        "app/routes/contributions.js:33": "Server-side JavaScript injection through eval()",
+        "app/routes/contributions.js:34": "Server-side JavaScript injection through eval()"
+      },
+      "not_covered": [
+        "NoSQL injection ($where)",
+        "broken authentication",
+        "access control"
+      ]
+    }
+  ],
+  "totals": {
+    "scoped": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 1,
+      "precision": 0.8333,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    },
+    "raw": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 25,
+      "precision": 0.1667,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    }
+  }
+}

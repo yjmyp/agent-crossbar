@@ -231,3 +231,55 @@ def test_embedding_runtime_configuration_can_be_reloaded_and_removed(
     assert removed.status_code == 200
     assert removed.json()["configured_model"] is None
     assert removed.json()["state"] == "lexical"
+
+
+def test_mixed_identifier_query_uses_cjk_trigram_fallback(client: TestClient) -> None:
+    response = client.post(
+        "/v1/knowledge/documents",
+        headers=_AUTHORIZATION,
+        json={
+            "title": "运行生命周期",
+            "source_name": "run-lifecycle",
+            "content": "RUN-LC-7 规定运行终态不可再次迁移，取消后轨迹仍然保留。",
+        },
+    )
+    assert response.status_code == 201
+    document = response.json()
+
+    searched = client.get(
+        "/v1/knowledge/search",
+        headers=_AUTHORIZATION,
+        params={"q": "RUN-LC-7 的运行终态有哪些？", "mode": "lexical"},
+    )
+
+    assert searched.status_code == 200
+    assert searched.json()["mode"] == "lexical"
+    assert searched.json()["results"][0]["document_id"] == document["document_id"]
+
+
+def test_forced_vector_mode_returns_vector_hits(semantic_client: TestClient) -> None:
+    document = ingest(semantic_client)
+
+    response = semantic_client.get(
+        "/v1/knowledge/search",
+        headers=_AUTHORIZATION,
+        params={"q": "冒烟测试", "mode": "vector"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["mode"] == "vector"
+    assert payload["degraded_reason"] is None
+    assert payload["results"][0]["document_id"] == document["document_id"]
+    assert payload["results"][0]["retrieval_mode"] == "vector"
+
+
+def test_search_rejects_unknown_retrieval_mode(client: TestClient) -> None:
+    response = client.get(
+        "/v1/knowledge/search",
+        headers=_AUTHORIZATION,
+        params={"q": "冒烟测试", "mode": "semantic"},
+    )
+
+    assert response.status_code == 422
+    assert "knowledge search mode" in response.json()["error"]["message"]

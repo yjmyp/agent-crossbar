@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 def migrate(connection: sqlite3.Connection) -> None:
@@ -24,6 +24,8 @@ def migrate(connection: sqlite3.Connection) -> None:
         _migration_five(connection)
     if current_version < 6:
         _migration_six(connection)
+    if current_version < 7:
+        _migration_seven(connection)
     if current_version < SCHEMA_VERSION:
         connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         connection.commit()
@@ -312,5 +314,42 @@ def _migration_six(connection: sqlite3.Connection) -> None:
 
         CREATE INDEX workers_agent_version_idx
         ON workers(agent_id, spec_version, enabled, created_at);
+        """
+    )
+
+def _migration_seven(connection: sqlite3.Connection) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE security_reviews (
+            review_id TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL,
+            root TEXT NOT NULL,
+            base TEXT,
+            staged INTEGER NOT NULL DEFAULT 0 CHECK (staged IN (0, 1)),
+            verdict TEXT NOT NULL CHECK (verdict IN ('block', 'fix', 'ship')),
+            policy_name TEXT NOT NULL,
+            run_id TEXT,
+            payload_json TEXT NOT NULL,
+            FOREIGN KEY (run_id) REFERENCES runs(run_id)
+        );
+
+        CREATE INDEX security_reviews_created_at_idx
+        ON security_reviews(created_at DESC);
+        CREATE INDEX security_reviews_verdict_idx
+        ON security_reviews(verdict, created_at DESC);
+
+        CREATE TABLE security_waivers (
+            waiver_id TEXT PRIMARY KEY,
+            rule_id TEXT NOT NULL,
+            file_pattern TEXT NOT NULL,
+            owner TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            revoked_at TEXT
+        );
+
+        CREATE INDEX security_waivers_active_idx
+        ON security_waivers(revoked_at, expires_at);
         """
     )

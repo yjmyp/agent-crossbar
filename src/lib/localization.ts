@@ -27,6 +27,15 @@ const gateStatuses: Record<string, string> = {
 const assertionTypes: Record<string, string> = {
   exact: "精确匹配",
   regex: "正则匹配",
+  contains: "包含文本",
+  not_contains: "不包含文本",
+  json_path: "JSON 路径",
+  tool_called: "调用了工具",
+  tool_not_called: "未调用工具",
+  tool_sequence: "工具调用序列",
+  max_tool_calls: "工具调用上限",
+  max_steps: "执行步数上限",
+  no_error: "无失败事件",
 };
 
 const risks: Record<string, string> = {

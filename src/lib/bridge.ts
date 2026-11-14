@@ -165,7 +165,18 @@ export type RunComparison = {
   differences: string[];
 };
 
-export type EvaluationAssertionType = "exact" | "regex";
+export type EvaluationAssertionType =
+  | "exact"
+  | "regex"
+  | "contains"
+  | "not_contains"
+  | "json_path"
+  | "tool_called"
+  | "tool_not_called"
+  | "tool_sequence"
+  | "max_tool_calls"
+  | "max_steps"
+  | "no_error";
 
 export type EvaluationCase = {
   case_id: string;
@@ -215,6 +226,15 @@ export type EvaluationMetrics = {
   error_cases?: number;
   pass_rate?: number;
   average_latency_ms?: number | null;
+  total_tool_calls?: number;
+  average_tool_calls?: number;
+  total_model_turns?: number;
+  average_model_turns?: number;
+  total_steps?: number;
+  average_steps?: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_cost_usd?: number;
   baseline_pass_rate?: number;
   pass_rate_delta?: number;
 };
@@ -362,6 +382,120 @@ export type KnowledgeIndexStatus = {
   expected_chunks: number;
   last_error: string | null;
   updated_at: string;
+};
+
+export type SecurityVerdict = "block" | "fix" | "ship";
+
+export type SecurityCitation = {
+  id: string;
+  title: string;
+  severity: string;
+};
+
+export type SecurityFinding = {
+  rule_id: string;
+  title: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  category: string;
+  file: string;
+  line: number;
+  column: number;
+  message: string;
+  evidence: string;
+  remediation: string;
+  cwe: string | null;
+  confidence: string;
+  source: string;
+  blocked: boolean;
+  waived: boolean;
+  waiver_id: string | null;
+  waived_until: string | null;
+  waived_by: string | null;
+  citations: SecurityCitation[];
+};
+
+export type SecurityBehaviourCheck = {
+  id: string;
+  label: string;
+  limit: string | number | string[];
+  actual: string | number | string[] | null;
+  status: "pass" | "fail" | "not_evaluated";
+};
+
+export type SecurityBehaviour = {
+  run_id: string | null;
+  status: string | null;
+  model_turns: number;
+  tool_calls: number;
+  tool_names: string[];
+  total_tokens: number;
+  duration_ms: number | null;
+  checks: SecurityBehaviourCheck[];
+  verdict: "pass" | "fail" | "not_evaluated";
+  summary: string;
+};
+
+export type SecurityReview = {
+  review_id: string;
+  created_at: string;
+  root: string;
+  scan: { mode: "full" | "changed"; base: string | null; staged: boolean };
+  policy: {
+    name: string;
+    clauses: { id: string; title: string; text: string; severity: string }[];
+    budgets: Record<string, number | string[]>;
+  };
+  stats: {
+    files_scanned: number;
+    files_skipped: number;
+    bytes_scanned: number;
+    duration_ms: number;
+  };
+  verdict: SecurityVerdict;
+  headline: string;
+  reasons: string[];
+  counts: Record<string, number>;
+  findings: SecurityFinding[];
+  run_id: string | null;
+  behaviour: SecurityBehaviour;
+  egress: {
+    used: boolean;
+    entries: Record<string, unknown>[];
+    statement: string;
+  };
+};
+
+export type SecurityReviewInput = {
+  root: string;
+  base?: string | null;
+  staged?: boolean;
+  run_id?: string | null;
+};
+
+export type SecurityWaiver = {
+  waiver_id: string;
+  rule_id: string;
+  file_pattern: string;
+  owner: string;
+  reason: string;
+  expires_at: string;
+  created_at: string;
+  revoked_at: string | null;
+  active: boolean;
+};
+
+export type SecurityWaiverInput = {
+  rule_id: string;
+  file_pattern: string;
+  owner: string;
+  reason: string;
+  expires_at: string;
+};
+
+export type SecurityPolicy = {
+  name: string;
+  clauses: { id: string; title: string; text: string; severity: string }[];
+  budgets: Record<string, number | string[]>;
 };
 
 export type SignatureStatus = {
@@ -676,6 +810,34 @@ export function createBridge(
       request<EvaluationBatch>(
         `/v1/evaluation/batches/${encodeURIComponent(batchId)}`,
       ),
+    createSecurityReview: (input: SecurityReviewInput) =>
+      request<SecurityReview>("/v1/security/reviews", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    listSecurityReviews: (limit = 20) =>
+      request<SecurityReview[]>(`/v1/security/reviews?limit=${limit}`),
+    getSecurityReview: (reviewId: string) =>
+      request<SecurityReview>(
+        `/v1/security/reviews/${encodeURIComponent(reviewId)}`,
+      ),
+    getSecurityReviewMarkdown: (reviewId: string) =>
+      requestText(
+        `${baseUrl}/v1/security/reviews/${encodeURIComponent(reviewId)}/markdown`,
+        authorization,
+      ),
+    listSecurityWaivers: () => request<SecurityWaiver[]>("/v1/security/waivers"),
+    createSecurityWaiver: (input: SecurityWaiverInput) =>
+      request<SecurityWaiver>("/v1/security/waivers", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    revokeSecurityWaiver: (waiverId: string) =>
+      request<SecurityWaiver>(
+        `/v1/security/waivers/${encodeURIComponent(waiverId)}`,
+        { method: "DELETE" },
+      ),
+    getSecurityPolicy: () => request<SecurityPolicy>("/v1/security/policy"),
     streamRunEvents: (
       runId: string,
       onEvent: (event: RuntimeEvent) => void,
@@ -705,6 +867,18 @@ function validateConnection(connection: AppConnection): string {
     throw new Error("缺少桌面服务启动令牌。");
   }
   return url.origin;
+}
+
+async function requestText(url: string, authorization: string): Promise<string> {
+  const response = await fetch(url, { headers: { Authorization: authorization } });
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      "request_failed",
+      `请求失败，状态码 ${response.status}。`,
+    );
+  }
+  return response.text();
 }
 
 async function invokeDesktop<T>(

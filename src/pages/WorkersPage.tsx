@@ -278,8 +278,8 @@ export function WorkersPage({
     <div className="page-stack workers-page">
       <PageHeader
         eyebrow="PRIVATE WORKER FABRIC"
-        title="私有执行节点"
-        description="登记你控制的远程 Agent 节点，按精确版本授权、检查协议健康度，并保留主控制面的运行谱系。"
+        title="执行节点"
+        description="登记你控制的远程 Agent 节点，按精确版本授权、检查协议健康度，并保留本地工作台的运行谱系。"
         actions={
           <Button tone="secondary" onClick={() => navigate("/registry")}>
             <Network size={14} aria-hidden="true" />
@@ -321,7 +321,7 @@ export function WorkersPage({
         <div className="worker-boundary">
           <ShieldCheck size={17} aria-hidden="true" />
           <p>
-            这是操作员管理的私有 Worker 池，不是公开 Agent 联邦或任意分布式集群。控制面只保存节点元数据，
+            这是操作员管理的私有 Worker 池，不是公开 Agent 联邦或任意分布式集群。本地工作台只保存节点元数据，
             Worker 令牌单独进入操作系统凭据库。
           </p>
         </div>
@@ -489,7 +489,7 @@ export function WorkersPage({
             </li>
             <li>
               <strong>并发与超时</strong>
-              <span>控制面按节点预算排队，超时和取消都有终态。</span>
+              <span>工作台按节点预算排队，超时和取消都有终态。</span>
             </li>
             <li>
               <strong>谱系连续</strong>
@@ -516,7 +516,7 @@ export function WorkersPage({
       ) : null}
       {!loading && !error && workers.length === 0 ? (
         <EmptyState
-          title="还没有私有节点"
+          title="还没有执行节点"
           description="先登记一个你控制的 Worker，再为其保存独立令牌。没有凭据的节点不会被执行器调度。"
           icon={<Network size={22} aria-hidden="true" />}
         />

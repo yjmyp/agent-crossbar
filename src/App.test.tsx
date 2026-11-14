@@ -50,19 +50,19 @@ it("opens the implemented Registry workspace from primary navigation", async () 
   );
 });
 
-it("opens the private worker cluster from primary navigation", async () => {
+it("opens the private worker pool from primary navigation", async () => {
   const user = userEvent.setup();
   render(<App bridge={fakeBridge()} initialRoute="/studio" />);
 
-  await user.click(screen.getByRole("link", { name: "私有执行节点" }));
+  await user.click(screen.getByRole("link", { name: "执行节点" }));
 
   expect(
-    await screen.findByRole("heading", { name: "私有执行节点" }),
+    await screen.findByRole("heading", { name: "执行节点" }),
   ).toBeInTheDocument();
   expect(
     screen.getByText(/操作员管理的私有 Worker 池/),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "私有执行节点" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "执行节点" })).toHaveAttribute(
     "aria-current",
     "page",
   );

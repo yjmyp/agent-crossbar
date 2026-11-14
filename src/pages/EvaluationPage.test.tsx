@@ -81,6 +81,42 @@ it("starts a real evaluation batch and shows metrics and case results", async ()
   expect(screen.getByRole("button", { name: "查看对应运行" })).toBeInTheDocument();
 });
 
+it("creates a trajectory assertion with a tool sequence", async () => {
+  const user = userEvent.setup();
+  const createEvaluationDataset = vi.fn(async () => fakeDataset);
+  render(
+    <EvaluationPage
+      bridge={fakeBridge({
+        listSpecs: async () => [fakeSpec],
+        createEvaluationDataset,
+      })}
+      navigate={vi.fn()}
+    />,
+  );
+
+  await user.type(await screen.findByLabelText("数据集名称"), "轨迹回归集");
+  await user.clear(screen.getByLabelText("数据集版本"));
+  await user.type(screen.getByLabelText("数据集版本"), "1.0.0");
+  await user.type(screen.getByLabelText("用例名称 1"), "先检索再计算");
+  await user.type(screen.getByLabelText("用例输入 1"), "查价格并计算折扣");
+  await user.selectOptions(screen.getByLabelText("断言方式 1"), "tool_sequence");
+  await user.type(screen.getByLabelText("期望结果 1"), "search -> calculator");
+  await user.click(screen.getByRole("button", { name: "保存数据集" }));
+
+  await waitFor(() => {
+    expect(createEvaluationDataset).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cases: [
+          expect.objectContaining({
+            assertion_type: "tool_sequence",
+            expected: "search -> calculator",
+          }),
+        ],
+      }),
+    );
+  });
+});
+
 it("requires confirmation before deleting a dataset", async () => {
   const user = userEvent.setup();
   const deleteEvaluationDataset = vi.fn(async () => undefined);

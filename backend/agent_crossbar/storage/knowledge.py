@@ -18,6 +18,8 @@ _MIN_SOFT_BREAK = 500
 _SOFT_BREAK = re.compile(r"[\n。！？.!?；;]\s*")
 _RRF_K = 60
 _EMBEDDING_BATCH_SIZE = 32
+_ASCII_NEEDLE = re.compile(r"[a-z0-9][a-z0-9_.:/-]{1,}", re.IGNORECASE)
+_CJK_RUN = re.compile(r"[\u3400-\u9fff]+")
 
 
 class KnowledgeNotFoundError(Exception):
@@ -268,18 +270,26 @@ class KnowledgeStore:
         query: str,
         *,
         limit: int = 6,
+        mode: str = "auto",
     ) -> KnowledgeSearchResult:
         normalized = query.strip()
         if not normalized:
             return KnowledgeSearchResult(mode="lexical", results=[])
         if limit < 1 or limit > 20:
             raise ValueError("knowledge search limit must be between 1 and 20")
+        if mode not in {"auto", "lexical", "vector", "hybrid"}:
+            raise ValueError("knowledge search mode must be auto, lexical, vector, or hybrid")
+        if mode == "lexical":
+            return KnowledgeSearchResult(
+                mode="lexical",
+                results=self._search_lexical(normalized, limit=limit),
+            )
 
         lexical = self._search_lexical(normalized, limit=limit * 3)
         if self._embedder is None:
             return KnowledgeSearchResult(
                 mode="lexical",
-                results=lexical[:limit],
+                results=lexical[:limit] if mode in {"auto", "hybrid"} else [],
                 degraded_reason="embedding_not_configured",
             )
 
@@ -293,7 +303,7 @@ class KnowledgeStore:
             }[status.state]
             return KnowledgeSearchResult(
                 mode="lexical",
-                results=lexical[:limit],
+                results=lexical[:limit] if mode in {"auto", "hybrid"} else [],
                 degraded_reason=reason,
             )
 
@@ -302,11 +312,17 @@ class KnowledgeStore:
         except Exception:
             return KnowledgeSearchResult(
                 mode="lexical",
-                results=lexical[:limit],
+                results=lexical[:limit] if mode in {"auto", "hybrid"} else [],
                 degraded_reason="embedding_unavailable",
             )
 
         vector = self._vector_search(query_vector, model=self._embedder.model, limit=limit * 3)
+        if mode == "vector":
+            return KnowledgeSearchResult(
+                mode="vector",
+                results=[replace(hit, retrieval_mode="vector") for hit in vector[:limit]],
+                degraded_reason=None if vector else "no_semantic_matches",
+            )
         if not vector and lexical:
             return KnowledgeSearchResult(
                 mode="lexical",
@@ -807,10 +823,38 @@ def _fts_queries(value: str) -> list[str]:
         return []
     exact = _quote_fts(value)
     terms = _literal_terms(value)
-    if len(terms) <= 1:
-        return [exact]
-    conjunction = " AND ".join(_quote_fts(term) for term in terms)
-    return [exact, conjunction]
+    queries = [exact]
+    if len(terms) > 1:
+        queries.append(" AND ".join(_quote_fts(term) for term in terms))
+
+    needles = _lexical_needles(value)
+    if needles:
+        queries.append(" OR ".join(_quote_fts(needle) for needle in needles))
+    return list(dict.fromkeys(queries))
+
+
+def _lexical_needles(value: str) -> list[str]:
+    """Extract identifier-like tokens and CJK trigrams for broad FTS recall."""
+    needles: list[str] = []
+    for match in _ASCII_NEEDLE.finditer(value):
+        token = match.group(0).strip("._:/-")
+        if len(token) >= 2:
+            needles.append(token)
+
+    for run in _CJK_RUN.findall(value):
+        if len(run) <= 3:
+            needles.append(run)
+            continue
+        needles.extend(run[index : index + 3] for index in range(len(run) - 2))
+
+    unique: list[str] = []
+    seen: set[str] = set()
+    for needle in needles:
+        normalized = needle.casefold()
+        if normalized not in seen:
+            seen.add(normalized)
+            unique.append(needle)
+    return unique[:32]
 
 
 def _quote_fts(value: str) -> str:

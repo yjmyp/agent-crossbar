@@ -1,0 +1,2203 @@
+{
+  "generated_at": "2026-11-13T19:20:14.548383+00:00",
+  "corpus_sha256": "3d2fd0dc66d4c4245c9f6d43ac15570c1597963947ad175bfbd08ae45f542d38",
+  "embedding": {
+    "model": "BAAI/bge-small-zh-v1.5",
+    "dimensions": 512,
+    "endpoint": "http://127.0.0.1:18888/v1"
+  },
+  "documents": 24,
+  "chunks": 24,
+  "queries": 72,
+  "modes": {
+    "lexical": {
+      "queries": 72,
+      "r_at_1": 0.8472,
+      "r_at_3": 0.8889,
+      "r_at_5": 0.8889,
+      "mrr": 0.8681,
+      "p50_latency_ms": 5.484,
+      "p95_latency_ms": 10.317,
+      "by_kind": {
+        "lexical": {
+          "queries": 24,
+          "r_at_1": 0.9583,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 0.9792,
+          "p50_latency_ms": 5.473,
+          "p95_latency_ms": 10.532
+        },
+        "semantic": {
+          "queries": 24,
+          "r_at_1": 0.5833,
+          "r_at_3": 0.6667,
+          "r_at_5": 0.6667,
+          "mrr": 0.625,
+          "p50_latency_ms": 5.181,
+          "p95_latency_ms": 9.052
+        },
+        "mixed": {
+          "queries": 24,
+          "r_at_1": 1.0,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 1.0,
+          "p50_latency_ms": 6.035,
+          "p95_latency_ms": 10.317
+        }
+      },
+      "misses": [
+        {
+          "query": "一次智能体执行从提交到结束会经历哪些阶段，取消后还能看到过程吗？",
+          "kind": "semantic",
+          "expected": "run-lifecycle",
+          "rank": 0,
+          "latency_ms": 8.469,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "换了中文嵌入模型以后，旧向量为什么需要重新生成？",
+          "kind": "semantic",
+          "expected": "embedding-index",
+          "rank": 0,
+          "latency_ms": 4.258,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "新版本效果比历史版本差时，评测系统如何标记？",
+          "kind": "semantic",
+          "expected": "evaluation-regression",
+          "rank": 0,
+          "latency_ms": 4.509,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "模型访问凭据为什么不能出现在数据库和界面里？",
+          "kind": "semantic",
+          "expected": "provider-credentials",
+          "rank": 0,
+          "latency_ms": 5.112,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+          "kind": "semantic",
+          "expected": "mcp-stdio",
+          "rank": 0,
+          "latency_ms": 4.056,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "模型一直要求调用工具时，怎样防止流程停不下来？",
+          "kind": "semantic",
+          "expected": "langgraph-runtime",
+          "rank": 0,
+          "latency_ms": 4.265,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+          "kind": "semantic",
+          "expected": "desktop-sidecar-token",
+          "rank": 0,
+          "latency_ms": 5.268,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        },
+        {
+          "query": "日志里怎样避免把访问密钥和授权头泄露出去？",
+          "kind": "semantic",
+          "expected": "security-redaction",
+          "rank": 0,
+          "latency_ms": 5.463,
+          "retrieval_mode": "lexical",
+          "degraded_reason": null
+        }
+      ]
+    },
+    "vector": {
+      "queries": 72,
+      "r_at_1": 0.8889,
+      "r_at_3": 0.9583,
+      "r_at_5": 0.9583,
+      "mrr": 0.9236,
+      "p50_latency_ms": 59.431,
+      "p95_latency_ms": 78.6,
+      "by_kind": {
+        "lexical": {
+          "queries": 24,
+          "r_at_1": 0.9167,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 0.9583,
+          "p50_latency_ms": 57.663,
+          "p95_latency_ms": 76.296
+        },
+        "semantic": {
+          "queries": 24,
+          "r_at_1": 0.75,
+          "r_at_3": 0.875,
+          "r_at_5": 0.875,
+          "mrr": 0.8125,
+          "p50_latency_ms": 60.299,
+          "p95_latency_ms": 75.037
+        },
+        "mixed": {
+          "queries": 24,
+          "r_at_1": 1.0,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 1.0,
+          "p50_latency_ms": 59.062,
+          "p95_latency_ms": 81.368
+        }
+      },
+      "misses": [
+        {
+          "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+          "kind": "semantic",
+          "expected": "mcp-stdio",
+          "rank": 0,
+          "latency_ms": 51.138,
+          "retrieval_mode": "vector",
+          "degraded_reason": null
+        },
+        {
+          "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+          "kind": "semantic",
+          "expected": "desktop-sidecar-token",
+          "rank": 0,
+          "latency_ms": 85.833,
+          "retrieval_mode": "vector",
+          "degraded_reason": null
+        },
+        {
+          "query": "模型接口超时、返回坏数据和工具参数错误分别怎样归类？",
+          "kind": "semantic",
+          "expected": "failure-taxonomy",
+          "rank": 0,
+          "latency_ms": 75.037,
+          "retrieval_mode": "vector",
+          "degraded_reason": null
+        }
+      ]
+    },
+    "hybrid": {
+      "queries": 72,
+      "r_at_1": 0.875,
+      "r_at_3": 0.9722,
+      "r_at_5": 0.9722,
+      "mrr": 0.919,
+      "p50_latency_ms": 57.269,
+      "p95_latency_ms": 77.692,
+      "by_kind": {
+        "lexical": {
+          "queries": 24,
+          "r_at_1": 1.0,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 1.0,
+          "p50_latency_ms": 57.15,
+          "p95_latency_ms": 80.047
+        },
+        "semantic": {
+          "queries": 24,
+          "r_at_1": 0.625,
+          "r_at_3": 0.9167,
+          "r_at_5": 0.9167,
+          "mrr": 0.7569,
+          "p50_latency_ms": 57.039,
+          "p95_latency_ms": 77.692
+        },
+        "mixed": {
+          "queries": 24,
+          "r_at_1": 1.0,
+          "r_at_3": 1.0,
+          "r_at_5": 1.0,
+          "mrr": 1.0,
+          "p50_latency_ms": 57.469,
+          "p95_latency_ms": 66.61
+        }
+      },
+      "misses": [
+        {
+          "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+          "kind": "semantic",
+          "expected": "mcp-stdio",
+          "rank": 0,
+          "latency_ms": 77.692,
+          "retrieval_mode": "hybrid",
+          "degraded_reason": null
+        },
+        {
+          "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+          "kind": "semantic",
+          "expected": "desktop-sidecar-token",
+          "rank": 0,
+          "latency_ms": 61.254,
+          "retrieval_mode": "vector",
+          "degraded_reason": null
+        }
+      ]
+    }
+  },
+  "rows": {
+    "lexical": [
+      {
+        "query": "RUN-LC-7 的运行终态有哪些？",
+        "kind": "lexical",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 10.532,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "一次智能体执行从提交到结束会经历哪些阶段，取消后还能看到过程吗？",
+        "kind": "semantic",
+        "expected": "run-lifecycle",
+        "rank": 0,
+        "latency_ms": 8.469,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "RUN-LC-7 的取消请求会不会删除已经写入的轨迹？",
+        "kind": "mixed",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 10.317,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 对事件编号有什么要求？",
+        "kind": "lexical",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 29.222,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "客户端断线重连后怎样继续接收轨迹而不重复处理旧消息？",
+        "kind": "semantic",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 9.935,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 的游标重放和 SSE 关闭条件是什么？",
+        "kind": "mixed",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 9.943,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 中词法通道使用什么排序？",
+        "kind": "lexical",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 8.263,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "同时用关键词和语义找资料时，两路结果怎样合并，失败时如何说明？",
+        "kind": "semantic",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 7.209,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 规定降级时 degraded_reason 必须怎么写？",
+        "kind": "mixed",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 10.571,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的 k 值是多少？",
+        "kind": "lexical",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 7.506,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "为什么排名融合不直接相加两种检索的原始分数？",
+        "kind": "semantic",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 7.809,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的融合公式和排序依据是什么？",
+        "kind": "mixed",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 9.15,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 的子串兜底解决什么问题？",
+        "kind": "lexical",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 7.898,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "中文没有空格时，错误码和短语怎样才能被搜到？",
+        "kind": "semantic",
+        "expected": "bm25-chinese",
+        "rank": 2,
+        "latency_ms": 9.052,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 在 BM25 未命中后会尝试哪些匹配方式？",
+        "kind": "mixed",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 9.106,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 的块大小和重叠是多少？",
+        "kind": "lexical",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 8.554,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "长文档切分时怎样尽量不把一句话从中间切断？",
+        "kind": "semantic",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 8.128,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 重复导入同一内容会发生什么？",
+        "kind": "mixed",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 7.888,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 使用多少维向量？",
+        "kind": "lexical",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 4.61,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "换了中文嵌入模型以后，旧向量为什么需要重新生成？",
+        "kind": "semantic",
+        "expected": "embedding-index",
+        "rank": 0,
+        "latency_ms": 4.258,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 的向量如何存储，检索是全量还是 ANN？",
+        "kind": "mixed",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 5.42,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 支持哪些轨迹断言？",
+        "kind": "lexical",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 4.735,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "怎样判断智能体有没有按顺序调用工具，而不是只看最后回答？",
+        "kind": "semantic",
+        "expected": "evaluation-trajectory",
+        "rank": 2,
+        "latency_ms": 4.836,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 的断言失败后怎样回到原始运行排查？",
+        "kind": "mixed",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 5.483,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 如何计算回归？",
+        "kind": "lexical",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 4.824,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "新版本效果比历史版本差时，评测系统如何标记？",
+        "kind": "semantic",
+        "expected": "evaluation-regression",
+        "rank": 0,
+        "latency_ms": 4.509,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 为什么要把执行错误和断言失败分开？",
+        "kind": "mixed",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 6.18,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的负载选择策略是什么？",
+        "kind": "lexical",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 5.32,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "一个远程执行节点超时后，任务会转到哪里继续跑？",
+        "kind": "semantic",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 5.077,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的精确版本匹配和故障转移条件是什么？",
+        "kind": "mixed",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 5.952,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 把密钥保存在哪里？",
+        "kind": "lexical",
+        "expected": "provider-credentials",
+        "rank": 2,
+        "latency_ms": 5.806,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型访问凭据为什么不能出现在数据库和界面里？",
+        "kind": "semantic",
+        "expected": "provider-credentials",
+        "rank": 0,
+        "latency_ms": 5.112,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 的凭证怎样传给本地 sidecar？",
+        "kind": "mixed",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 6.119,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 中远程 HTTP 有什么安全要求？",
+        "kind": "lexical",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 5.01,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+        "kind": "semantic",
+        "expected": "mcp-stdio",
+        "rank": 0,
+        "latency_ms": 4.056,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 为什么只允许回环地址使用明文连接？",
+        "kind": "mixed",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 5.211,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 的最大委派深度是多少？",
+        "kind": "lexical",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 5.181,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "主智能体把任务交给子智能体时，怎样限制规模和层数？",
+        "kind": "semantic",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 5.762,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 禁止自我委派的原因和子运行轨迹关系是什么？",
+        "kind": "mixed",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 6.738,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 用什么图结构执行模型和工具循环？",
+        "kind": "lexical",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 5.625,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型一直要求调用工具时，怎样防止流程停不下来？",
+        "kind": "semantic",
+        "expected": "langgraph-runtime",
+        "rank": 0,
+        "latency_ms": 4.265,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 的条件跳转和最大轮次限制是什么？",
+        "kind": "mixed",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 4.849,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 的令牌如何生成？",
+        "kind": "lexical",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 4.788,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+        "kind": "semantic",
+        "expected": "desktop-sidecar-token",
+        "rank": 0,
+        "latency_ms": 5.268,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 为什么令牌不写进前端持久化存储？",
+        "kind": "mixed",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 6.791,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 为什么使用 WAL？",
+        "kind": "lexical",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 5.111,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "本地数据库在进程异常退出后如何保持一致性？",
+        "kind": "semantic",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 5.068,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 的事件 sequence 如何在事务内分配？",
+        "kind": "mixed",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 5.463,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 会拦截哪些工具？",
+        "kind": "lexical",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 4.586,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "哪些工具调用需要人确认，低风险操作能不能直接执行？",
+        "kind": "semantic",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 4.884,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 审批超时后会产生什么事件？",
+        "kind": "mixed",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 5.007,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 为什么用字符串保存金额？",
+        "kind": "lexical",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 5.715,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "多次模型调用累计花费时怎样避免小数误差？",
+        "kind": "semantic",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 5.165,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 没有价格配置时界面应显示什么？",
+        "kind": "mixed",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 6.782,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 是否已经自动清理旧轨迹？",
+        "kind": "lexical",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 5.752,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "工程预览版会不会定期删除运行记录，数据治理政策是什么？",
+        "kind": "semantic",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 5.391,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 导出轨迹时必须保留哪些字段？",
+        "kind": "mixed",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 5.338,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 为什么显示 NotSigned？",
+        "kind": "lexical",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 6.526,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "Windows 安装包没有生产证书时签名状态应该怎样呈现？",
+        "kind": "semantic",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 6.866,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 的临时证书和测试私钥会提交吗？",
+        "kind": "mixed",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 5.455,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 使用什么签名方案？",
+        "kind": "lexical",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 4.691,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "更新包被篡改或试图装回旧版本时如何拒绝？",
+        "kind": "semantic",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 5.198,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 在没有 HTTPS 更新服务时清单状态是什么？",
+        "kind": "mixed",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 6.84,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 要过滤哪些敏感字段？",
+        "kind": "lexical",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 6.272,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "日志里怎样避免把访问密钥和授权头泄露出去？",
+        "kind": "semantic",
+        "expected": "security-redaction",
+        "rank": 0,
+        "latency_ms": 5.463,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 怎样测试数据库和日志都没有原始密钥？",
+        "kind": "mixed",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 5.514,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 使用哪些指标？",
+        "kind": "lexical",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 4.184,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "评价资料检索质量时，除了命中率还要报告哪些统计量？",
+        "kind": "semantic",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 4.81,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 未命中的查询如何计入 MRR？",
+        "kind": "mixed",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 5.485,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 包含哪些错误类型？",
+        "kind": "lexical",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 5.076,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型接口超时、返回坏数据和工具参数错误分别怎样归类？",
+        "kind": "semantic",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 4.408,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 的错误码和轨迹阶段如何对应？",
+        "kind": "mixed",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 5.618,
+        "retrieval_mode": "lexical",
+        "degraded_reason": null
+      }
+    ],
+    "vector": [
+      {
+        "query": "RUN-LC-7 的运行终态有哪些？",
+        "kind": "lexical",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 45.926,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "一次智能体执行从提交到结束会经历哪些阶段，取消后还能看到过程吗？",
+        "kind": "semantic",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 54.439,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "RUN-LC-7 的取消请求会不会删除已经写入的轨迹？",
+        "kind": "mixed",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 59.985,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 对事件编号有什么要求？",
+        "kind": "lexical",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 55.052,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "客户端断线重连后怎样继续接收轨迹而不重复处理旧消息？",
+        "kind": "semantic",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 63.22,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 的游标重放和 SSE 关闭条件是什么？",
+        "kind": "mixed",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 53.742,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 中词法通道使用什么排序？",
+        "kind": "lexical",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 48.011,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "同时用关键词和语义找资料时，两路结果怎样合并，失败时如何说明？",
+        "kind": "semantic",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 60.029,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 规定降级时 degraded_reason 必须怎么写？",
+        "kind": "mixed",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 57.516,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的 k 值是多少？",
+        "kind": "lexical",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 56.3,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "为什么排名融合不直接相加两种检索的原始分数？",
+        "kind": "semantic",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 70.045,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的融合公式和排序依据是什么？",
+        "kind": "mixed",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 64.387,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 的子串兜底解决什么问题？",
+        "kind": "lexical",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 61.398,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "中文没有空格时，错误码和短语怎样才能被搜到？",
+        "kind": "semantic",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 63.878,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 在 BM25 未命中后会尝试哪些匹配方式？",
+        "kind": "mixed",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 63.264,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 的块大小和重叠是多少？",
+        "kind": "lexical",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 54.259,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "长文档切分时怎样尽量不把一句话从中间切断？",
+        "kind": "semantic",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 57.21,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 重复导入同一内容会发生什么？",
+        "kind": "mixed",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 90.07,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 使用多少维向量？",
+        "kind": "lexical",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 57.566,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "换了中文嵌入模型以后，旧向量为什么需要重新生成？",
+        "kind": "semantic",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 62.353,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 的向量如何存储，检索是全量还是 ANN？",
+        "kind": "mixed",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 68.553,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 支持哪些轨迹断言？",
+        "kind": "lexical",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 63.021,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "怎样判断智能体有没有按顺序调用工具，而不是只看最后回答？",
+        "kind": "semantic",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 58.626,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 的断言失败后怎样回到原始运行排查？",
+        "kind": "mixed",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 57.117,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 如何计算回归？",
+        "kind": "lexical",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 52.551,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "新版本效果比历史版本差时，评测系统如何标记？",
+        "kind": "semantic",
+        "expected": "evaluation-regression",
+        "rank": 2,
+        "latency_ms": 60.297,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 为什么要把执行错误和断言失败分开？",
+        "kind": "mixed",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 59.7,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的负载选择策略是什么？",
+        "kind": "lexical",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 62.079,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "一个远程执行节点超时后，任务会转到哪里继续跑？",
+        "kind": "semantic",
+        "expected": "worker-pool",
+        "rank": 2,
+        "latency_ms": 67.712,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的精确版本匹配和故障转移条件是什么？",
+        "kind": "mixed",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 52.776,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 把密钥保存在哪里？",
+        "kind": "lexical",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 68.479,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型访问凭据为什么不能出现在数据库和界面里？",
+        "kind": "semantic",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 60.302,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 的凭证怎样传给本地 sidecar？",
+        "kind": "mixed",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 58.424,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 中远程 HTTP 有什么安全要求？",
+        "kind": "lexical",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 54.693,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+        "kind": "semantic",
+        "expected": "mcp-stdio",
+        "rank": 0,
+        "latency_ms": 51.138,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 为什么只允许回环地址使用明文连接？",
+        "kind": "mixed",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 56.623,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 的最大委派深度是多少？",
+        "kind": "lexical",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 63.676,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "主智能体把任务交给子智能体时，怎样限制规模和层数？",
+        "kind": "semantic",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 53.085,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 禁止自我委派的原因和子运行轨迹关系是什么？",
+        "kind": "mixed",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 63.843,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 用什么图结构执行模型和工具循环？",
+        "kind": "lexical",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 59.034,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型一直要求调用工具时，怎样防止流程停不下来？",
+        "kind": "semantic",
+        "expected": "langgraph-runtime",
+        "rank": 2,
+        "latency_ms": 62.511,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 的条件跳转和最大轮次限制是什么？",
+        "kind": "mixed",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 81.368,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 的令牌如何生成？",
+        "kind": "lexical",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 76.296,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+        "kind": "semantic",
+        "expected": "desktop-sidecar-token",
+        "rank": 0,
+        "latency_ms": 85.833,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 为什么令牌不写进前端持久化存储？",
+        "kind": "mixed",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 52.728,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 为什么使用 WAL？",
+        "kind": "lexical",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 54.56,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "本地数据库在进程异常退出后如何保持一致性？",
+        "kind": "semantic",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 59.162,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 的事件 sequence 如何在事务内分配？",
+        "kind": "mixed",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 53.463,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 会拦截哪些工具？",
+        "kind": "lexical",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 56.489,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "哪些工具调用需要人确认，低风险操作能不能直接执行？",
+        "kind": "semantic",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 54.193,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 审批超时后会产生什么事件？",
+        "kind": "mixed",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 66.813,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 为什么用字符串保存金额？",
+        "kind": "lexical",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 55.271,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "多次模型调用累计花费时怎样避免小数误差？",
+        "kind": "semantic",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 68.277,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 没有价格配置时界面应显示什么？",
+        "kind": "mixed",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 64.447,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 是否已经自动清理旧轨迹？",
+        "kind": "lexical",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 57.76,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "工程预览版会不会定期删除运行记录，数据治理政策是什么？",
+        "kind": "semantic",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 55.997,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 导出轨迹时必须保留哪些字段？",
+        "kind": "mixed",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 59.822,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 为什么显示 NotSigned？",
+        "kind": "lexical",
+        "expected": "installer-signing",
+        "rank": 2,
+        "latency_ms": 78.6,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "Windows 安装包没有生产证书时签名状态应该怎样呈现？",
+        "kind": "semantic",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 64.834,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 的临时证书和测试私钥会提交吗？",
+        "kind": "mixed",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 53.636,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 使用什么签名方案？",
+        "kind": "lexical",
+        "expected": "updater-verification",
+        "rank": 2,
+        "latency_ms": 62.42,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "更新包被篡改或试图装回旧版本时如何拒绝？",
+        "kind": "semantic",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 52.621,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 在没有 HTTPS 更新服务时清单状态是什么？",
+        "kind": "mixed",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 70.365,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 要过滤哪些敏感字段？",
+        "kind": "lexical",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 52.535,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "日志里怎样避免把访问密钥和授权头泄露出去？",
+        "kind": "semantic",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 57.052,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 怎样测试数据库和日志都没有原始密钥？",
+        "kind": "mixed",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 57.598,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 使用哪些指标？",
+        "kind": "lexical",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 60.002,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "评价资料检索质量时，除了命中率还要报告哪些统计量？",
+        "kind": "semantic",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 66.602,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 未命中的查询如何计入 MRR？",
+        "kind": "mixed",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 50.441,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 包含哪些错误类型？",
+        "kind": "lexical",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 64.254,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型接口超时、返回坏数据和工具参数错误分别怎样归类？",
+        "kind": "semantic",
+        "expected": "failure-taxonomy",
+        "rank": 0,
+        "latency_ms": 75.037,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 的错误码和轨迹阶段如何对应？",
+        "kind": "mixed",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 54.44,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      }
+    ],
+    "hybrid": [
+      {
+        "query": "RUN-LC-7 的运行终态有哪些？",
+        "kind": "lexical",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 62.639,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "一次智能体执行从提交到结束会经历哪些阶段，取消后还能看到过程吗？",
+        "kind": "semantic",
+        "expected": "run-lifecycle",
+        "rank": 3,
+        "latency_ms": 55.683,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "RUN-LC-7 的取消请求会不会删除已经写入的轨迹？",
+        "kind": "mixed",
+        "expected": "run-lifecycle",
+        "rank": 1,
+        "latency_ms": 53.215,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 对事件编号有什么要求？",
+        "kind": "lexical",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 54.799,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "客户端断线重连后怎样继续接收轨迹而不重复处理旧消息？",
+        "kind": "semantic",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 68.17,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "EVT-SEQ-42 的游标重放和 SSE 关闭条件是什么？",
+        "kind": "mixed",
+        "expected": "event-ordering",
+        "rank": 1,
+        "latency_ms": 65.755,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 中词法通道使用什么排序？",
+        "kind": "lexical",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 55.968,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "同时用关键词和语义找资料时，两路结果怎样合并，失败时如何说明？",
+        "kind": "semantic",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 56.974,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "HYB-3X 规定降级时 degraded_reason 必须怎么写？",
+        "kind": "mixed",
+        "expected": "hybrid-retrieval",
+        "rank": 1,
+        "latency_ms": 66.61,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的 k 值是多少？",
+        "kind": "lexical",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 50.292,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "为什么排名融合不直接相加两种检索的原始分数？",
+        "kind": "semantic",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 52.86,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "RRF-K60 的融合公式和排序依据是什么？",
+        "kind": "mixed",
+        "expected": "rrf-fusion",
+        "rank": 1,
+        "latency_ms": 62.384,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 的子串兜底解决什么问题？",
+        "kind": "lexical",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 80.047,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "中文没有空格时，错误码和短语怎样才能被搜到？",
+        "kind": "semantic",
+        "expected": "bm25-chinese",
+        "rank": 2,
+        "latency_ms": 56.239,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "CJK-LIKE-9 在 BM25 未命中后会尝试哪些匹配方式？",
+        "kind": "mixed",
+        "expected": "bm25-chinese",
+        "rank": 1,
+        "latency_ms": 54.146,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 的块大小和重叠是多少？",
+        "kind": "lexical",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 53.985,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "长文档切分时怎样尽量不把一句话从中间切断？",
+        "kind": "semantic",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 65.848,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "CHUNK-1000-120 重复导入同一内容会发生什么？",
+        "kind": "mixed",
+        "expected": "chunking-policy",
+        "rank": 1,
+        "latency_ms": 65.025,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 使用多少维向量？",
+        "kind": "lexical",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 60.897,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "换了中文嵌入模型以后，旧向量为什么需要重新生成？",
+        "kind": "semantic",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 64.695,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "EMB-IDX-512 的向量如何存储，检索是全量还是 ANN？",
+        "kind": "mixed",
+        "expected": "embedding-index",
+        "rank": 1,
+        "latency_ms": 54.692,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 支持哪些轨迹断言？",
+        "kind": "lexical",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 57.459,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "怎样判断智能体有没有按顺序调用工具，而不是只看最后回答？",
+        "kind": "semantic",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 55.455,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRAJ-ASSERT-5 的断言失败后怎样回到原始运行排查？",
+        "kind": "mixed",
+        "expected": "evaluation-trajectory",
+        "rank": 1,
+        "latency_ms": 64.406,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 如何计算回归？",
+        "kind": "lexical",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 49.711,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "新版本效果比历史版本差时，评测系统如何标记？",
+        "kind": "semantic",
+        "expected": "evaluation-regression",
+        "rank": 2,
+        "latency_ms": 86.604,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "GATE-DELTA 为什么要把执行错误和断言失败分开？",
+        "kind": "mixed",
+        "expected": "evaluation-regression",
+        "rank": 1,
+        "latency_ms": 55.801,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的负载选择策略是什么？",
+        "kind": "lexical",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 49.371,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "一个远程执行节点超时后，任务会转到哪里继续跑？",
+        "kind": "semantic",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 54.848,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "WORKER-POOL-4 的精确版本匹配和故障转移条件是什么？",
+        "kind": "mixed",
+        "expected": "worker-pool",
+        "rank": 1,
+        "latency_ms": 52.446,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 把密钥保存在哪里？",
+        "kind": "lexical",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 60.002,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型访问凭据为什么不能出现在数据库和界面里？",
+        "kind": "semantic",
+        "expected": "provider-credentials",
+        "rank": 3,
+        "latency_ms": 50.167,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "VAULT-CRED-2 的凭证怎样传给本地 sidecar？",
+        "kind": "mixed",
+        "expected": "provider-credentials",
+        "rank": 1,
+        "latency_ms": 50.685,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 中远程 HTTP 有什么安全要求？",
+        "kind": "lexical",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 60.922,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "两个外部工具服务重名时，调用名称怎样避免冲突？",
+        "kind": "semantic",
+        "expected": "mcp-stdio",
+        "rank": 0,
+        "latency_ms": 77.692,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "MCP-STDIO-8 为什么只允许回环地址使用明文连接？",
+        "kind": "mixed",
+        "expected": "mcp-stdio",
+        "rank": 1,
+        "latency_ms": 67.486,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 的最大委派深度是多少？",
+        "kind": "lexical",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 55.426,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "主智能体把任务交给子智能体时，怎样限制规模和层数？",
+        "kind": "semantic",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 66.057,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "DELEG-DEPTH-3 禁止自我委派的原因和子运行轨迹关系是什么？",
+        "kind": "mixed",
+        "expected": "delegation-bounds",
+        "rank": 1,
+        "latency_ms": 57.95,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 用什么图结构执行模型和工具循环？",
+        "kind": "lexical",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 67.801,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型一直要求调用工具时，怎样防止流程停不下来？",
+        "kind": "semantic",
+        "expected": "langgraph-runtime",
+        "rank": 2,
+        "latency_ms": 66.285,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "LG-GRAPH-6 的条件跳转和最大轮次限制是什么？",
+        "kind": "mixed",
+        "expected": "langgraph-runtime",
+        "rank": 1,
+        "latency_ms": 45.917,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 的令牌如何生成？",
+        "kind": "lexical",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 68.517,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "桌面程序与后台服务之间如何证明请求来自本应用？",
+        "kind": "semantic",
+        "expected": "desktop-sidecar-token",
+        "rank": 0,
+        "latency_ms": 61.254,
+        "retrieval_mode": "vector",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIDECAR-TOKEN-1 为什么令牌不写进前端持久化存储？",
+        "kind": "mixed",
+        "expected": "desktop-sidecar-token",
+        "rank": 1,
+        "latency_ms": 61.307,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 为什么使用 WAL？",
+        "kind": "lexical",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 62.056,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "本地数据库在进程异常退出后如何保持一致性？",
+        "kind": "semantic",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 64.59,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "WAL-MODE-5 的事件 sequence 如何在事务内分配？",
+        "kind": "mixed",
+        "expected": "sqlite-wal",
+        "rank": 1,
+        "latency_ms": 57.576,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 会拦截哪些工具？",
+        "kind": "lexical",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 59.483,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "哪些工具调用需要人确认，低风险操作能不能直接执行？",
+        "kind": "semantic",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 53.367,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "APPROVE-RISK-7 审批超时后会产生什么事件？",
+        "kind": "mixed",
+        "expected": "tool-approval",
+        "rank": 1,
+        "latency_ms": 56.808,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 为什么用字符串保存金额？",
+        "kind": "lexical",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 61.176,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "多次模型调用累计花费时怎样避免小数误差？",
+        "kind": "semantic",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 70.269,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "COST-USD-9 没有价格配置时界面应显示什么？",
+        "kind": "mixed",
+        "expected": "cost-accounting",
+        "rank": 1,
+        "latency_ms": 58.95,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 是否已经自动清理旧轨迹？",
+        "kind": "lexical",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 56.84,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "工程预览版会不会定期删除运行记录，数据治理政策是什么？",
+        "kind": "semantic",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 57.105,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "TRACE-KEEP-30 导出轨迹时必须保留哪些字段？",
+        "kind": "mixed",
+        "expected": "trace-retention",
+        "rank": 1,
+        "latency_ms": 57.363,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 为什么显示 NotSigned？",
+        "kind": "lexical",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 52.019,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "Windows 安装包没有生产证书时签名状态应该怎样呈现？",
+        "kind": "semantic",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 53.31,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "SIGN-AUTH-11 的临时证书和测试私钥会提交吗？",
+        "kind": "mixed",
+        "expected": "installer-signing",
+        "rank": 1,
+        "latency_ms": 60.047,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 使用什么签名方案？",
+        "kind": "lexical",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 51.616,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "更新包被篡改或试图装回旧版本时如何拒绝？",
+        "kind": "semantic",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 53.204,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "UPD-SIGN-12 在没有 HTTPS 更新服务时清单状态是什么？",
+        "kind": "mixed",
+        "expected": "updater-verification",
+        "rank": 1,
+        "latency_ms": 54.248,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 要过滤哪些敏感字段？",
+        "kind": "lexical",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 49.687,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "日志里怎样避免把访问密钥和授权头泄露出去？",
+        "kind": "semantic",
+        "expected": "security-redaction",
+        "rank": 2,
+        "latency_ms": 55.873,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "REDACT-KEY-13 怎样测试数据库和日志都没有原始密钥？",
+        "kind": "mixed",
+        "expected": "security-redaction",
+        "rank": 1,
+        "latency_ms": 62.727,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 使用哪些指标？",
+        "kind": "lexical",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 81.31,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "评价资料检索质量时，除了命中率还要报告哪些统计量？",
+        "kind": "semantic",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 53.709,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "BENCH-R-MRR 未命中的查询如何计入 MRR？",
+        "kind": "mixed",
+        "expected": "benchmark-method",
+        "rank": 1,
+        "latency_ms": 56.724,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 包含哪些错误类型？",
+        "kind": "lexical",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 53.998,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "模型接口超时、返回坏数据和工具参数错误分别怎样归类？",
+        "kind": "semantic",
+        "expected": "failure-taxonomy",
+        "rank": 2,
+        "latency_ms": 62.778,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      },
+      {
+        "query": "FAIL-TAX-14 的错误码和轨迹阶段如何对应？",
+        "kind": "mixed",
+        "expected": "failure-taxonomy",
+        "rank": 1,
+        "latency_ms": 57.174,
+        "retrieval_mode": "hybrid",
+        "degraded_reason": null
+      }
+    ]
+  }
+}

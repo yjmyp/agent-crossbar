@@ -14,7 +14,7 @@ it("shows exact worker authorization and the operator-managed boundary", async (
   );
 
   expect(
-    await screen.findByRole("heading", { name: "私有执行节点" }),
+    await screen.findByRole("heading", { name: "执行节点" }),
   ).toBeInTheDocument();
   expect(await screen.findByText("华东研究节点")).toBeInTheDocument();
   expect(screen.getByText("agent_research@1.2.3")).toBeInTheDocument();

@@ -15,6 +15,9 @@ dependencies = [
   "uvicorn[standard]>=0.32.0",
 ]
 
+[project.scripts]
+crossbar-security = "agent_crossbar.security.cli:main"
+
 [dependency-groups]
 dev = [
   "pyinstaller>=6.22.3",
@@ -32,6 +35,11 @@ package-dir = { "" = "backend" }
 
 [tool.setuptools.packages.find]
 where = ["backend"]
+namespaces = false
+exclude = ["tests", "tests.*"]
+
+[tool.setuptools.package-data]
+"agent_crossbar.security" = ["policy.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]

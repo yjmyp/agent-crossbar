@@ -14,7 +14,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from agent_crossbar import __version__
@@ -59,6 +59,13 @@ from agent_crossbar.runtime.worker_runtime import (
     WorkerProtocolError,
     WorkerRuntime,
 )
+from agent_crossbar.security import SecurityReviewService
+from agent_crossbar.security.errors import (
+    SecurityReviewError,
+    SecurityReviewNotFoundError,
+    SecurityWaiverNotFoundError,
+)
+from agent_crossbar.security.service import render_review_markdown
 from agent_crossbar.storage.database import Database
 from agent_crossbar.storage.evaluations import (
     DatasetInUseError,
@@ -134,6 +141,22 @@ class WorkerCredentialRequest(BaseModel):
     token: str = Field(min_length=1, max_length=4_096)
 
 
+class CreateSecurityReviewRequest(BaseModel):
+    root: str = Field(min_length=1, max_length=4096)
+    base: str | None = Field(default=None, max_length=200)
+    staged: bool = False
+    run_id: str | None = Field(default=None, min_length=1, max_length=100)
+    policy_path: str | None = Field(default=None, max_length=4096)
+
+
+class CreateSecurityWaiverRequest(BaseModel):
+    rule_id: str = Field(min_length=1, max_length=80)
+    file_pattern: str = Field(default="**", min_length=1, max_length=400)
+    owner: str = Field(min_length=2, max_length=120)
+    reason: str = Field(min_length=8, max_length=2000)
+    expires_at: datetime
+
+
 class InboundWorkerRunRequest(BaseModel):
     protocol_version: int
     agent_id: str = Field(min_length=1, max_length=100)
@@ -197,6 +220,7 @@ def create_app(
     knowledge_store = KnowledgeStore(database, embedder=embedder)
     tool_catalog = RuntimeToolCatalog(knowledge_store, mcp_service)
     worker_store = WorkerStore(database)
+    security_service = SecurityReviewService(database)
     credentials = worker_credentials or WorkerCredentialVault()
     worker_runtime = WorkerRuntime(credentials)
     delegation = DelegationCoordinator(
@@ -244,6 +268,7 @@ def create_app(
     app.state.knowledge_store = knowledge_store
     app.state.tool_catalog = tool_catalog
     app.state.worker_store = worker_store
+    app.state.security_service = security_service
     app.state.worker_credentials = credentials
     app.state.worker_runtime = worker_runtime
     app.state.delegation = delegation
@@ -295,6 +320,31 @@ def create_app(
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response
+
+    @app.exception_handler(SecurityReviewError)
+    async def handle_security_review_error(
+        _: Request,
+        error: SecurityReviewError,
+    ) -> JSONResponse:
+        return _error_response(422, "security_review_failed", str(error))
+
+    @app.exception_handler(SecurityReviewNotFoundError)
+    async def handle_security_review_not_found(
+        _: Request,
+        __: SecurityReviewNotFoundError,
+    ) -> JSONResponse:
+        return _error_response(
+            404, "security_review_not_found", "The security review was not found."
+        )
+
+    @app.exception_handler(SecurityWaiverNotFoundError)
+    async def handle_security_waiver_not_found(
+        _: Request,
+        __: SecurityWaiverNotFoundError,
+    ) -> JSONResponse:
+        return _error_response(
+            404, "security_waiver_not_found", "The security waiver was not found."
+        )
 
     @app.exception_handler(SpecNotFoundError)
     async def handle_spec_not_found(_: Request, __: SpecNotFoundError) -> JSONResponse:
@@ -653,12 +703,20 @@ def create_app(
         knowledge_store.delete(document_id)
 
     @app.get("/v1/knowledge/search")
-    async def search_knowledge(q: str, limit: int = 6) -> dict[str, object]:
+    async def search_knowledge(
+        q: str,
+        limit: int = 6,
+        mode: str = "auto",
+    ) -> dict[str, object]:
         if not q.strip() or len(q) > 500:
             raise SpecValidationError("knowledge query must contain 1 to 500 characters")
         if limit < 1 or limit > 20:
             raise SpecValidationError("knowledge search limit must be between 1 and 20")
-        result = await knowledge_store.search_with_mode(q, limit=limit)
+        if mode not in {"auto", "lexical", "vector", "hybrid"}:
+            raise SpecValidationError(
+                "knowledge search mode must be auto, lexical, vector, or hybrid"
+            )
+        result = await knowledge_store.search_with_mode(q, limit=limit, mode=mode)
         return {"query": q, **result.as_dict()}
 
     @app.get("/v1/knowledge/index")
@@ -815,6 +873,72 @@ def create_app(
                 "X-Accel-Buffering": "no",
             },
         )
+
+    @app.post("/v1/security/reviews", status_code=201)
+    async def create_security_review(
+        payload: CreateSecurityReviewRequest,
+    ) -> dict[str, object]:
+        review = security_service.create_review(
+            root=payload.root,
+            base=payload.base,
+            staged=payload.staged,
+            run_id=payload.run_id,
+            policy_path=payload.policy_path,
+        )
+        return review.payload
+
+    @app.get("/v1/security/reviews")
+    async def list_security_reviews(limit: int = 50) -> list[dict[str, object]]:
+        return [record.payload for record in security_service.list_reviews(limit=limit)]
+
+    @app.get("/v1/security/reviews/{review_id}")
+    async def get_security_review(review_id: str) -> dict[str, object]:
+        return security_service.get_review(review_id).payload
+
+    @app.get("/v1/security/reviews/{review_id}/markdown")
+    async def get_security_review_markdown(review_id: str) -> PlainTextResponse:
+        payload = security_service.get_review(review_id).payload
+        return PlainTextResponse(
+            render_review_markdown(payload),
+            media_type="text/markdown; charset=utf-8",
+        )
+
+    @app.get("/v1/security/waivers")
+    async def list_security_waivers() -> list[dict[str, object]]:
+        return security_service.list_waivers()
+
+    @app.post("/v1/security/waivers", status_code=201)
+    async def create_security_waiver(
+        payload: CreateSecurityWaiverRequest,
+    ) -> dict[str, object]:
+        return security_service.create_waiver(
+            rule_id=payload.rule_id,
+            file_pattern=payload.file_pattern,
+            owner=payload.owner,
+            reason=payload.reason,
+            expires_at=payload.expires_at,
+        )
+
+    @app.delete("/v1/security/waivers/{waiver_id}")
+    async def revoke_security_waiver(waiver_id: str) -> dict[str, object]:
+        return security_service.revoke_waiver(waiver_id)
+
+    @app.get("/v1/security/policy")
+    async def get_security_policy() -> dict[str, object]:
+        policy = security_service.policy
+        return {
+            "name": policy.name,
+            "clauses": [
+                {
+                    "id": clause.clause_id,
+                    "title": clause.title,
+                    "text": clause.text,
+                    "severity": clause.severity,
+                }
+                for clause in policy.clauses
+            ],
+            "budgets": policy.budgets,
+        }
 
     @app.get("/v1/compare")
     async def compare_runs(left_run_id: str, right_run_id: str) -> RunComparison:

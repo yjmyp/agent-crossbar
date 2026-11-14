@@ -1,0 +1,198 @@
+{
+  "documents": [
+    {
+      "slug": "run-lifecycle",
+      "title": "运行生命周期与终态",
+      "content": "Agent Crossbar 的一次运行从 queued 进入 running，最终只能落到 completed、failed 或 cancelled 之一。RUN-LC-7 规定终态不可再次迁移；取消请求会停止后续模型轮次，但已经写入的轨迹事件不会被删除。运行记录同时保存输入、输出、父运行、根运行和委派深度，便于在运行中心复查。"
+    },
+    {
+      "slug": "event-ordering",
+      "title": "事件顺序与断点续传",
+      "content": "轨迹事件使用递增 sequence 编号，客户端通过 after_sequence 游标重放，断线后不会重复消费已经确认的事件。EVT-SEQ-42 要求同一运行内事件严格单调，SSE 流在终态且无新事件时关闭。事件载荷经过规范化，模型轮次、工具开始、工具结束和运行失败分别记录为不同类型。"
+    },
+    {
+      "slug": "hybrid-retrieval",
+      "title": "混合检索的两条通道",
+      "content": "知识检索同时维护词法通道和向量通道。词法通道使用 SQLite FTS5 的 BM25 排序，向量通道对分块向量做本地余弦相似度计算，两路结果再用倒数排名融合。HYB-3X 规定任一路失败时必须如实降级并在响应里给出 degraded_reason，不能把只剩词法的结果伪装成混合检索。"
+    },
+    {
+      "slug": "rrf-fusion",
+      "title": "倒数排名融合参数",
+      "content": "倒数排名融合不直接比较 BM25 分数和余弦分数，而是只看各自的名次。RRF-K60 表示融合常数 k 取 60，每个结果的融合分等于两路 1/(k+rank+1) 之和，再按分数降序排列。这样能避免某一路的原始分数量纲压倒另一路，也便于解释每个候选来自哪个通道。"
+    },
+    {
+      "slug": "bm25-chinese",
+      "title": "中文词法匹配与子串兜底",
+      "content": "FTS5 默认分词对连续中文并不理想，因此系统在 BM25 没有命中时会尝试精确子串匹配，并按多个关键词同时出现进行收敛。CJK-LIKE-9 记录了这条兜底路径。它牺牲了一部分召回速度，换取错误码、版本号和中文短语可以被直接找到，结果仍然带有文档与分块引用。"
+    },
+    {
+      "slug": "chunking-policy",
+      "title": "分块大小与重叠窗口",
+      "content": "知识文档按确定性规则切分，目标块大小为 1000 个字符，相邻块保留 120 个字符重叠。CHUNK-1000-120 强调切分优先落在换行、句号、问号或分号附近，避免把一句完整的话从中间截断。相同内容重复导入会得到稳定的文档标识，并替换旧分块而不是无限追加。"
+    },
+    {
+      "slug": "embedding-index",
+      "title": "向量索引的存储格式",
+      "content": "分块向量以小端 float32 字节数组存入 SQLite，同时记录模型名和维度。EMB-IDX-512 使用 512 维中文小模型，索引状态会比较配置模型与已索引模型；两者不一致时标记为 stale，并要求重建。向量检索目前在 Python 中全量读取后计算，适合本地中小语料，不是大规模 ANN 索引。"
+    },
+    {
+      "slug": "evaluation-trajectory",
+      "title": "轨迹级断言",
+      "content": "评测不只看最终字符串，还可以检查运行轨迹。TRAJ-ASSERT-5 覆盖工具是否被调用、工具调用顺序、工具调用次数上限、执行步数上限以及是否出现失败事件。每个用例仍然创建真实运行，因此断言失败时可以回到对应 run_id 查看模型轮次、工具参数和工具输出。"
+    },
+    {
+      "slug": "evaluation-regression",
+      "title": "基线比较与回归门禁",
+      "content": "同一数据集可以指定历史批次作为基线。GATE-DELTA 计算当前通过率与基线通过率的差值，低于基线时门禁状态为 regression，否则为 pass。比较只对已完成批次生效，执行错误与断言失败分开统计，避免把基础设施故障误判成模型质量下降。"
+    },
+    {
+      "slug": "worker-pool",
+      "title": "私有 Worker 池的选择与转移",
+      "content": "Worker 是操作者显式注册的受控执行节点，必须匹配精确的 agent_id 与版本。WORKER-POOL-4 描述了健康检查、每节点并发上限、最少负载选择和轮转策略。遇到可重试的超时、连接断开或 5xx 时，控制面会把任务转移到下一个启用节点，并在父轨迹中保留子运行记录。"
+    },
+    {
+      "slug": "provider-credentials",
+      "title": "模型凭证的保存边界",
+      "content": "模型 API Key 不写入 SQLite、AgentSpec、轨迹或日志。VAULT-CRED-2 要求桌面端把凭证保存到 Windows Credential Manager，再通过受控进程环境提供给本地 sidecar。界面只显示是否已配置，测试连接失败时返回通用错误，不把服务端原始响应或密钥片段回显给用户。"
+    },
+    {
+      "slug": "mcp-stdio",
+      "title": "MCP 传输与命名空间",
+      "content": "MCP 服务支持 stdio 和 HTTP 两种传输。MCP-STDIO-8 要求远程 HTTP 必须使用 HTTPS，只有回环地址允许明文开发连接；工具发现结果会加上服务命名空间，避免不同服务同名工具互相覆盖。注册、启用、禁用和工具调用都受超时与输出长度限制。"
+    },
+    {
+      "slug": "delegation-bounds",
+      "title": "受控委派的边界",
+      "content": "supervisor 模式允许主智能体按模型决策调用被授权的成员版本。DELEG-DEPTH-3 规定最大委派深度为 3，根运行统一限制总智能体数量，禁止自我委派。子运行拥有独立 run_id，但事件会复制到父轨迹；这是有界监督式委派，不是任意规模的分布式蜂群。"
+    },
+    {
+      "slug": "langgraph-runtime",
+      "title": "LangGraph 条件循环",
+      "content": "LangGraph 适配器使用真实的 StateGraph，在模型节点和工具节点之间根据是否存在工具调用进行条件跳转。LG-GRAPH-6 要求循环受最大轮次和执行超时约束，不能因为模型持续请求工具而无限运行。原生运行时与 LangGraph 运行时共享相同的规范化事件和工具执行策略。"
+    },
+    {
+      "slug": "desktop-sidecar-token",
+      "title": "桌面端与 sidecar 的鉴权",
+      "content": "本地 sidecar 只监听回环地址，每次启动生成随机 bearer token。SIDECAR-TOKEN-1 规定除健康检查外的请求都必须携带该令牌，未授权请求返回 401。桌面进程负责启动和关闭 sidecar，令牌通过进程环境传入，不写入前端持久化存储。"
+    },
+    {
+      "slug": "sqlite-wal",
+      "title": "SQLite 持久化模式",
+      "content": "运行、事件、规范、数据集和知识库统一保存在 SQLite 中，并启用 WAL 模式。WAL-MODE-5 允许读取与写入更好并发，同时在进程异常退出后依靠日志恢复一致性。数据库连接使用写锁串行化写入，事件 sequence 在事务内分配，避免并发提交造成顺序冲突。"
+    },
+    {
+      "slug": "tool-approval",
+      "title": "工具审批策略",
+      "content": "工具调用可以按策略要求人工审批。APPROVE-RISK-7 表示 risky_tools 模式只拦截被标记为中高风险的调用，低风险工具直接执行；all_tools 会拦截全部工具，never 则不做交互审批。审批超时会终止该次调用并写入失败事件，而不是静默跳过。"
+    },
+    {
+      "slug": "cost-accounting",
+      "title": "Token 与成本核算",
+      "content": "每次模型响应记录输入 token、输出 token 和结束原因，运行详情汇总所有轮次。COST-USD-9 要求成本字段以美元字符串保存，避免浮点误差在多次累加后放大。没有价格配置时显示未知而不是猜测为零，比较页面也只并排真实存在的字段。"
+    },
+    {
+      "slug": "trace-retention",
+      "title": "轨迹保留策略",
+      "content": "工程预览版本不会自动清理运行和事件，用户可以手动删除工作区数据。TRACE-KEEP-30 是后续保留策略的候选值，但在没有明确数据治理政策前不会宣称自动保留 30 天。导出轨迹时必须保留 sequence、事件类型、时间戳和脱敏后的载荷。"
+    },
+    {
+      "slug": "installer-signing",
+      "title": "安装包与代码签名",
+      "content": "Windows 安装包使用 MSI，默认安装到当前用户目录，不要求管理员权限。SIGN-AUTH-11 指 Authenticode 签名检查；工程预览构建没有生产证书，因此状态显示 NotSigned。签名流水线可以生成临时证书做验证，但临时私钥和测试产物不会提交到仓库。"
+    },
+    {
+      "slug": "updater-verification",
+      "title": "更新包的签名校验",
+      "content": "桌面更新使用 Minisign 校验更新清单与安装包，拒绝篡改、错误版本和降级安装。UPD-SIGN-12 要求更新公钥内置在应用中，私钥不进入源码仓库。没有配置 HTTPS 更新服务时，清单状态必须是 not_configured，不能把本地测试更新说成已上线。"
+    },
+    {
+      "slug": "security-redaction",
+      "title": "敏感信息脱敏",
+      "content": "日志和错误响应会过滤 Authorization 头、常见 API Key 前缀和超长秘密字段。REDACT-KEY-13 要求新增字段时先判断是否可能携带凭证，再决定是否持久化。测试用合成密钥必须与真实密钥格式明显不同，并断言数据库和日志中都不出现原值。"
+    },
+    {
+      "slug": "benchmark-method",
+      "title": "检索基准的统计口径",
+      "content": "检索基准对每条查询记录正确分块的名次，计算 R@1、R@3、R@5 和 MRR；没有命中的查询倒数排名记为零。BENCH-R-MRR 还要求报告 P50 与 P95 延迟、语料哈希、查询数量以及词法、向量、混合三种模式的对照结果。只报告单一通过率不足以说明检索质量。"
+    },
+    {
+      "slug": "failure-taxonomy",
+      "title": "失败类型分类",
+      "content": "运行失败被分为传输失败、HTTP 状态失败、响应格式错误、工具参数错误、工具超时和策略拒绝。FAIL-TAX-14 要求每类失败都有稳定错误码，并在轨迹中保留发生阶段。界面展示用户可理解的说明，内部日志保留排查所需的上下文，但不泄露凭证。"
+    }
+  ],
+  "queries": [
+    {"query": "RUN-LC-7 的运行终态有哪些？", "expected": "run-lifecycle", "kind": "lexical"},
+    {"query": "一次智能体执行从提交到结束会经历哪些阶段，取消后还能看到过程吗？", "expected": "run-lifecycle", "kind": "semantic"},
+    {"query": "RUN-LC-7 的取消请求会不会删除已经写入的轨迹？", "expected": "run-lifecycle", "kind": "mixed"},
+    {"query": "EVT-SEQ-42 对事件编号有什么要求？", "expected": "event-ordering", "kind": "lexical"},
+    {"query": "客户端断线重连后怎样继续接收轨迹而不重复处理旧消息？", "expected": "event-ordering", "kind": "semantic"},
+    {"query": "EVT-SEQ-42 的游标重放和 SSE 关闭条件是什么？", "expected": "event-ordering", "kind": "mixed"},
+    {"query": "HYB-3X 中词法通道使用什么排序？", "expected": "hybrid-retrieval", "kind": "lexical"},
+    {"query": "同时用关键词和语义找资料时，两路结果怎样合并，失败时如何说明？", "expected": "hybrid-retrieval", "kind": "semantic"},
+    {"query": "HYB-3X 规定降级时 degraded_reason 必须怎么写？", "expected": "hybrid-retrieval", "kind": "mixed"},
+    {"query": "RRF-K60 的 k 值是多少？", "expected": "rrf-fusion", "kind": "lexical"},
+    {"query": "为什么排名融合不直接相加两种检索的原始分数？", "expected": "rrf-fusion", "kind": "semantic"},
+    {"query": "RRF-K60 的融合公式和排序依据是什么？", "expected": "rrf-fusion", "kind": "mixed"},
+    {"query": "CJK-LIKE-9 的子串兜底解决什么问题？", "expected": "bm25-chinese", "kind": "lexical"},
+    {"query": "中文没有空格时，错误码和短语怎样才能被搜到？", "expected": "bm25-chinese", "kind": "semantic"},
+    {"query": "CJK-LIKE-9 在 BM25 未命中后会尝试哪些匹配方式？", "expected": "bm25-chinese", "kind": "mixed"},
+    {"query": "CHUNK-1000-120 的块大小和重叠是多少？", "expected": "chunking-policy", "kind": "lexical"},
+    {"query": "长文档切分时怎样尽量不把一句话从中间切断？", "expected": "chunking-policy", "kind": "semantic"},
+    {"query": "CHUNK-1000-120 重复导入同一内容会发生什么？", "expected": "chunking-policy", "kind": "mixed"},
+    {"query": "EMB-IDX-512 使用多少维向量？", "expected": "embedding-index", "kind": "lexical"},
+    {"query": "换了中文嵌入模型以后，旧向量为什么需要重新生成？", "expected": "embedding-index", "kind": "semantic"},
+    {"query": "EMB-IDX-512 的向量如何存储，检索是全量还是 ANN？", "expected": "embedding-index", "kind": "mixed"},
+    {"query": "TRAJ-ASSERT-5 支持哪些轨迹断言？", "expected": "evaluation-trajectory", "kind": "lexical"},
+    {"query": "怎样判断智能体有没有按顺序调用工具，而不是只看最后回答？", "expected": "evaluation-trajectory", "kind": "semantic"},
+    {"query": "TRAJ-ASSERT-5 的断言失败后怎样回到原始运行排查？", "expected": "evaluation-trajectory", "kind": "mixed"},
+    {"query": "GATE-DELTA 如何计算回归？", "expected": "evaluation-regression", "kind": "lexical"},
+    {"query": "新版本效果比历史版本差时，评测系统如何标记？", "expected": "evaluation-regression", "kind": "semantic"},
+    {"query": "GATE-DELTA 为什么要把执行错误和断言失败分开？", "expected": "evaluation-regression", "kind": "mixed"},
+    {"query": "WORKER-POOL-4 的负载选择策略是什么？", "expected": "worker-pool", "kind": "lexical"},
+    {"query": "一个远程执行节点超时后，任务会转到哪里继续跑？", "expected": "worker-pool", "kind": "semantic"},
+    {"query": "WORKER-POOL-4 的精确版本匹配和故障转移条件是什么？", "expected": "worker-pool", "kind": "mixed"},
+    {"query": "VAULT-CRED-2 把密钥保存在哪里？", "expected": "provider-credentials", "kind": "lexical"},
+    {"query": "模型访问凭据为什么不能出现在数据库和界面里？", "expected": "provider-credentials", "kind": "semantic"},
+    {"query": "VAULT-CRED-2 的凭证怎样传给本地 sidecar？", "expected": "provider-credentials", "kind": "mixed"},
+    {"query": "MCP-STDIO-8 中远程 HTTP 有什么安全要求？", "expected": "mcp-stdio", "kind": "lexical"},
+    {"query": "两个外部工具服务重名时，调用名称怎样避免冲突？", "expected": "mcp-stdio", "kind": "semantic"},
+    {"query": "MCP-STDIO-8 为什么只允许回环地址使用明文连接？", "expected": "mcp-stdio", "kind": "mixed"},
+    {"query": "DELEG-DEPTH-3 的最大委派深度是多少？", "expected": "delegation-bounds", "kind": "lexical"},
+    {"query": "主智能体把任务交给子智能体时，怎样限制规模和层数？", "expected": "delegation-bounds", "kind": "semantic"},
+    {"query": "DELEG-DEPTH-3 禁止自我委派的原因和子运行轨迹关系是什么？", "expected": "delegation-bounds", "kind": "mixed"},
+    {"query": "LG-GRAPH-6 用什么图结构执行模型和工具循环？", "expected": "langgraph-runtime", "kind": "lexical"},
+    {"query": "模型一直要求调用工具时，怎样防止流程停不下来？", "expected": "langgraph-runtime", "kind": "semantic"},
+    {"query": "LG-GRAPH-6 的条件跳转和最大轮次限制是什么？", "expected": "langgraph-runtime", "kind": "mixed"},
+    {"query": "SIDECAR-TOKEN-1 的令牌如何生成？", "expected": "desktop-sidecar-token", "kind": "lexical"},
+    {"query": "桌面程序与后台服务之间如何证明请求来自本应用？", "expected": "desktop-sidecar-token", "kind": "semantic"},
+    {"query": "SIDECAR-TOKEN-1 为什么令牌不写进前端持久化存储？", "expected": "desktop-sidecar-token", "kind": "mixed"},
+    {"query": "WAL-MODE-5 为什么使用 WAL？", "expected": "sqlite-wal", "kind": "lexical"},
+    {"query": "本地数据库在进程异常退出后如何保持一致性？", "expected": "sqlite-wal", "kind": "semantic"},
+    {"query": "WAL-MODE-5 的事件 sequence 如何在事务内分配？", "expected": "sqlite-wal", "kind": "mixed"},
+    {"query": "APPROVE-RISK-7 会拦截哪些工具？", "expected": "tool-approval", "kind": "lexical"},
+    {"query": "哪些工具调用需要人确认，低风险操作能不能直接执行？", "expected": "tool-approval", "kind": "semantic"},
+    {"query": "APPROVE-RISK-7 审批超时后会产生什么事件？", "expected": "tool-approval", "kind": "mixed"},
+    {"query": "COST-USD-9 为什么用字符串保存金额？", "expected": "cost-accounting", "kind": "lexical"},
+    {"query": "多次模型调用累计花费时怎样避免小数误差？", "expected": "cost-accounting", "kind": "semantic"},
+    {"query": "COST-USD-9 没有价格配置时界面应显示什么？", "expected": "cost-accounting", "kind": "mixed"},
+    {"query": "TRACE-KEEP-30 是否已经自动清理旧轨迹？", "expected": "trace-retention", "kind": "lexical"},
+    {"query": "工程预览版会不会定期删除运行记录，数据治理政策是什么？", "expected": "trace-retention", "kind": "semantic"},
+    {"query": "TRACE-KEEP-30 导出轨迹时必须保留哪些字段？", "expected": "trace-retention", "kind": "mixed"},
+    {"query": "SIGN-AUTH-11 为什么显示 NotSigned？", "expected": "installer-signing", "kind": "lexical"},
+    {"query": "Windows 安装包没有生产证书时签名状态应该怎样呈现？", "expected": "installer-signing", "kind": "semantic"},
+    {"query": "SIGN-AUTH-11 的临时证书和测试私钥会提交吗？", "expected": "installer-signing", "kind": "mixed"},
+    {"query": "UPD-SIGN-12 使用什么签名方案？", "expected": "updater-verification", "kind": "lexical"},
+    {"query": "更新包被篡改或试图装回旧版本时如何拒绝？", "expected": "updater-verification", "kind": "semantic"},
+    {"query": "UPD-SIGN-12 在没有 HTTPS 更新服务时清单状态是什么？", "expected": "updater-verification", "kind": "mixed"},
+    {"query": "REDACT-KEY-13 要过滤哪些敏感字段？", "expected": "security-redaction", "kind": "lexical"},
+    {"query": "日志里怎样避免把访问密钥和授权头泄露出去？", "expected": "security-redaction", "kind": "semantic"},
+    {"query": "REDACT-KEY-13 怎样测试数据库和日志都没有原始密钥？", "expected": "security-redaction", "kind": "mixed"},
+    {"query": "BENCH-R-MRR 使用哪些指标？", "expected": "benchmark-method", "kind": "lexical"},
+    {"query": "评价资料检索质量时，除了命中率还要报告哪些统计量？", "expected": "benchmark-method", "kind": "semantic"},
+    {"query": "BENCH-R-MRR 未命中的查询如何计入 MRR？", "expected": "benchmark-method", "kind": "mixed"},
+    {"query": "FAIL-TAX-14 包含哪些错误类型？", "expected": "failure-taxonomy", "kind": "lexical"},
+    {"query": "模型接口超时、返回坏数据和工具参数错误分别怎样归类？", "expected": "failure-taxonomy", "kind": "semantic"},
+    {"query": "FAIL-TAX-14 的错误码和轨迹阶段如何对应？", "expected": "failure-taxonomy", "kind": "mixed"}
+  ]
+}

@@ -7,6 +7,7 @@ import {
   GitCompareArrows,
   LayoutDashboard,
   Network,
+  ShieldCheck,
   Waypoints,
 } from "lucide-react";
 import clsx from "clsx";
@@ -26,7 +27,8 @@ const navigation: NavigationItem[] = [
   { href: "/compare", label: "运行对比", icon: GitCompareArrows, section: "compare" },
   { href: "/evaluation", label: "评测实验室", icon: FlaskConical, section: "evaluation" },
   { href: "/registry", label: "能力注册中心", icon: Blocks, section: "registry" },
-  { href: "/workers", label: "私有执行节点", icon: Network, section: "workers" },
+  { href: "/workers", label: "执行节点", icon: Network, section: "workers" },
+  { href: "/security", label: "安全评审", icon: ShieldCheck, section: "security" },
 ];
 
 export function Sidebar({

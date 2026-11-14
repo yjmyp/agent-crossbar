@@ -1,0 +1,156 @@
+name: 示例公司 · AI 代码交付规范 v1
+version: "1.0"
+rule_fixes:
+  CS-SECRET-001: 删除密钥并在 IAM 轮换，改用环境变量注入
+  CS-SECRET-002: 吊销该令牌，改用运行时短期令牌
+  CS-SECRET-003: 在 Stripe 后台轮换密钥，改从密钥服务读取
+  CS-SECRET-004: 从提交历史中移除私钥，并更换密钥对
+  CS-SECRET-005: 吊销 Slack 令牌并重新签发
+  CS-SECRET-006: 视为已泄露，吊销会话；不要把令牌写入源码
+  CS-SECRET-007: 轮换 API Key，改从环境变量读取
+  CS-SECRET-008: 口令改为环境变量注入，并立即轮换
+  CS-SECRET-009: 移入密钥服务，轮换后只保留占位符
+  CS-SECRET-010: 不要提交 .env，只提交 .env.example 占位文件
+  CS-PY-000: 先修复语法错误，再依赖安全审查结论
+  CS-PY-001: 禁止把请求或命令行数据传入 eval/exec，改用白名单解析
+  CS-PY-002: 改用 subprocess 参数列表，并逐项校验参数
+  CS-PY-003: 使用参数列表并设置 shell=False
+  CS-PY-004: 不要反序列化不可信 pickle，改用 JSON 或签名格式
+  CS-PY-005: 改用 yaml.safe_load 或显式安全 Loader
+  CS-PY-006: 删除 verify=False，并配置受信 CA
+  CS-PY-007: 使用参数化查询，禁止把外部输入拼进 SQL
+  CS-PY-008: 规范化路径，并限制在允许根目录内
+  CS-PY-009: 显式算法白名单，并开启签名校验
+  CS-PY-010: 生产环境关闭 debug
+  CS-PY-011: 完整性校验用 SHA-256，口令用 Argon2id
+  CS-PY-012: 删除该赋值，改用默认的校验上下文
+  CS-PY-013: 收紧权限，例如 0o600 或 0o644
+  CS-JS-001: 避免 eval，用 schema 解析外部数据
+  CS-JS-002: 使用 execFile/spawn 传参数列表
+  CS-JS-003: 改用文本渲染，或使用可信净化库
+  CS-JS-004: 改用 textContent，或显式净化后再渲染
+  CS-JS-005: 避免 new Function，改用静态分发表
+  CS-CONF-001: 使用明确来源白名单，禁止通配符配凭据
+  CS-CONF-002: 从发布配置中移除 NODE_TLS_REJECT_UNAUTHORIZED=0
+rule_titles:
+  CS-SECRET-001: 硬编码 AWS 访问密钥
+  CS-SECRET-002: 硬编码 GitHub 令牌
+  CS-SECRET-003: 硬编码 Stripe 密钥
+  CS-SECRET-004: 提交了私钥文件
+  CS-SECRET-005: 硬编码 Slack 令牌
+  CS-SECRET-006: 提交了 JWT 令牌
+  CS-SECRET-007: 硬编码模型 API Key
+  CS-SECRET-008: 数据库连接串含明文口令
+  CS-SECRET-009: 高熵值写入凭据变量
+  CS-SECRET-010: .env 中存在真实凭据
+  CS-PY-000: Python 文件无法解析
+  CS-PY-001: 外部输入进入动态执行
+  CS-PY-002: 执行系统命令
+  CS-PY-003: 以 shell=True 调用子进程
+  CS-PY-004: 不安全的 pickle 反序列化
+  CS-PY-005: 不安全的 YAML 反序列化
+  CS-PY-006: 关闭了 TLS 校验
+  CS-PY-007: 外部输入拼接进 SQL
+  CS-PY-008: 文件路径来自外部输入
+  CS-PY-009: 关闭了 JWT 校验
+  CS-PY-010: 启动时开启 debug
+  CS-PY-011: 使用弱哈希算法
+  CS-PY-012: 通过赋值关闭 TLS 校验
+  CS-PY-013: 权限设置为所有人可写
+  CS-JS-001: 动态执行 JavaScript
+  CS-JS-002: 通过 child_process 执行命令
+  CS-JS-003: 直接注入未净化 HTML
+  CS-JS-004: 使用 innerHTML 赋值
+  CS-JS-005: 用字符串构造函数
+  CS-CONF-001: 通配符 CORS
+  CS-CONF-002: Node 关闭 TLS 校验
+budgets:
+  max_total_tokens: 20000
+  max_duration_ms: 30000
+  max_tool_calls: 8
+  forbidden_tools: []
+clauses:
+  - id: SEC-01
+    title: 凭据与密钥不得写入代码或提交历史
+    severity: critical
+    text: 所有密钥、令牌、数据库口令、私钥必须由密钥管理服务或环境变量注入。源码、配置文件、示例文件、测试夹具中不得出现真实值；示例必须使用占位符。发现即视为已泄露，必须轮换。
+    applies_to: [CS-SECRET-001, CS-SECRET-002, CS-SECRET-003, CS-SECRET-004, CS-SECRET-005, CS-SECRET-006, CS-SECRET-007, CS-SECRET-008, CS-SECRET-009, CS-SECRET-010]
+    categories: [secret]
+  - id: SEC-02
+    title: 内部标识、客户数据与保密标记不得外流
+    severity: critical
+    text: 仓库不得包含内部系统代号、客户名单、合同编号、未脱敏个人信息，以及标记为内部或保密的材料。演示数据必须合成或脱敏，并在提交说明中注明来源。
+    applies_to: []
+    categories: [policy, privacy]
+  - id: SEC-03
+    title: 禁止拼接外部输入执行系统命令
+    severity: high
+    text: 任何来自请求、命令行、文件或模型输出的字符串都不得拼接进 shell 命令。必须使用参数列表与 shell=False，并对可执行文件和参数做白名单校验。
+    applies_to: [CS-PY-002, CS-PY-003, CS-JS-002]
+    categories: [injection]
+  - id: SEC-04
+    title: 禁止对外部输入使用动态代码执行
+    severity: critical
+    text: eval、exec、new Function 只能用于常量或受控内部数据。解析外部数据必须使用有 schema 的解析器，并对字段做类型与长度限制。
+    applies_to: [CS-PY-001, CS-JS-001, CS-JS-005]
+    categories: [injection]
+  - id: SEC-05
+    title: 数据库访问必须参数化
+    severity: critical
+    text: SQL 必须使用参数化查询或 ORM 绑定参数。禁止使用 f-string、字符串拼接、百分号格式化或 format 把外部输入写入 SQL。
+    applies_to: [CS-PY-007]
+    categories: [injection]
+  - id: SEC-06
+    title: 不得反序列化不可信数据
+    severity: high
+    text: 禁止对来自网络或用户的数据使用 pickle。YAML 必须使用 safe_load 或显式安全 Loader；其他序列化格式必须具备签名或完整性校验。
+    applies_to: [CS-PY-004, CS-PY-005]
+    categories: [deserialization]
+  - id: SEC-07
+    title: 传输必须校验 TLS
+    severity: medium
+    text: 不得关闭证书校验。内部 CA 场景必须显式配置受信 CA 包，不得以 verify=False 或 NODE_TLS_REJECT_UNAUTHORIZED=0 绕过。
+    applies_to: [CS-PY-006, CS-PY-012, CS-CONF-002]
+    categories: [transport]
+  - id: SEC-08
+    title: 认证校验不得被关闭
+    severity: critical
+    text: JWT 必须校验签名并限定算法白名单。禁止 verify=False、禁止接受 alg=none、禁止在解码后跳过过期时间与签发者校验。
+    applies_to: [CS-PY-009]
+    categories: [auth]
+  - id: SEC-09
+    title: 文件路径必须限制在允许目录内
+    severity: high
+    text: 所有由外部输入决定的路径必须先规范化，再校验是否位于允许根目录之下。仅使用 basename 不足以防御路径穿越。
+    applies_to: [CS-PY-008]
+    categories: [path]
+  - id: SEC-10
+    title: 运行配置默认最小权限
+    severity: medium
+    text: 生产配置不得开启 debug；文件权限不得为 0o777；跨域必须使用明确来源白名单，且不得与凭据同时使用通配符。
+    applies_to: [CS-PY-010, CS-PY-013, CS-CONF-001]
+    categories: [config]
+  - id: SEC-11
+    title: 密码学使用必须符合规范
+    severity: low
+    text: 完整性校验使用 SHA-256 及以上；口令存储使用 Argon2id、scrypt 或 bcrypt，并配置合理的成本参数。禁止 MD5 与 SHA-1 用于安全目的。
+    applies_to: [CS-PY-011]
+    categories: [crypto]
+  - id: SEC-12
+    title: 前端不得直接注入未净化 HTML
+    severity: medium
+    text: 优先使用文本节点渲染。必须渲染富文本时，先经过受信任的净化库，并对 URL 协议做白名单校验。
+    applies_to: [CS-JS-003, CS-JS-004]
+    categories: [xss]
+  - id: SEC-13
+    title: 代码与数据默认不出本机
+    severity: high
+    text: 任何将源码、日志、配置发送到外部模型的流程都必须显式授权，发送前脱敏，并记录发送的文件与行范围。审计工具本身不得成为泄露通道。
+    applies_to: []
+    categories: [egress]
+  - id: SEC-14
+    title: 交付必须留下可复核的证据
+    severity: medium
+    text: 每次合并前必须产生审查结论、规则版本、扫描范围与导出物。结论必须可被第三方在不接触原始代码的前提下复核。
+    applies_to: []
+    categories: [process]
