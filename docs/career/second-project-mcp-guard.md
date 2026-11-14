@@ -1,7 +1,21 @@
 # 第二个旗舰项目：MCP Guard
 
 日期：2026-11-14
-状态：**已选型，待开工**
+状态：**已否决（2026-11-14 晚，检索后推翻）**
+
+否决理由：这一格已经被占满。GitHub 上真实存在的同类项目（2026-11-14 检索）：
+
+| 项目 | Stars | 说明 |
+| --- | --- | --- |
+| NVIDIA/SkillSpector | 25.9k | Agent skill 安全扫描，含 MCP |
+| Tencent/AI-Infra-Guard | 7.5k | MCP scan + Agent scan 红队平台 |
+| snyk/agent-scan | 3.2k | MCP server / agent skill 扫描 |
+| IBM/mcp-context-forge | 4.8k | MCP/A2A 网关 + guardrails |
+| microsoft/mcp-gateway | 919 | MCP 反向代理与生命周期管理 |
+| cisco-ai-defense/mcp-scanner | 1.1k | MCP server 威胁扫描 |
+
+个人项目在这条赛道上是“更弱的第七个扫描器”，面试官一句“和 Snyk 的比呢”就结束了。
+下面的内容保留作为否决记录，不再作为选型。
 
 ## 先把前两版否掉，理由要能拿去面试讲
 
