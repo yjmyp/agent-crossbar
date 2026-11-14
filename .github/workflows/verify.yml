@@ -46,9 +46,16 @@ jobs:
       - name: Script tests (PowerShell helpers and provider-smoke selectors)
         shell: pwsh
         run: |
+          npx vitest --version
+          Get-ChildItem scripts -Filter *.test.mjs | Select-Object Name
           npx vitest run --config vitest.scripts.config.ts --reporter=verbose 2>&1 |
             Tee-Object -FilePath vitest-scripts.log
-          exit $LASTEXITCODE
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            $tail = (Get-Content vitest-scripts.log -Tail 12) -join " | "
+            Write-Host "::error title=script-tests::$tail"
+          }
+          exit $code
       - name: Upload script test log
         if: always()
         uses: actions/upload-artifact@v4
