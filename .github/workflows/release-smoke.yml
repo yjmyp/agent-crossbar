@@ -186,6 +186,29 @@ jobs:
           if ($env:HAS_SIGNING_CERT -ne "true") {
             Write-Host "::warning::No production Authenticode certificate configured; MSI is unsigned. See docs/verification/authenticode.md."
           }
+      - name: Verify MSI payload by administrative extract
+        if: always()
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem -Path src-tauri/target/release/bundle/msi/*.msi | Select-Object -First 1
+          if (-not $msi) { throw "MSI not found" }
+          $target = Join-Path $env:RUNNER_TEMP "msi-extract"
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          $process = Start-Process msiexec.exe -ArgumentList @(
+            "/a", $msi.FullName, "/qn", "TARGETDIR=$target", "/l*v", "msi-extract.log"
+          ) -PassThru
+          if (-not $process.WaitForExit(300000)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "administrative extract timed out"
+          }
+          if ($process.ExitCode -notin @(0, 3010)) { throw "administrative extract failed: $($process.ExitCode)" }
+          $exe = Get-ChildItem $target -Recurse -Filter "Agent Crossbar.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "MSI payload does not contain Agent Crossbar.exe" }
+          $sidecar = Get-ChildItem $target -Recurse -Filter "agent-crossbar-sidecar*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $sidecar) { throw "MSI payload does not contain the sidecar" }
+          Write-Host "MSI payload verified:"
+          Write-Host "  $($exe.FullName)"
+          Write-Host "  $($sidecar.FullName)"
       - name: Install MSI silently
         shell: pwsh
         run: |
@@ -222,4 +245,5 @@ jobs:
             src-tauri/target/release/bundle/msi/*.msi
             msi-install.log
             msi-uninstall.log
+            msi-extract.log
             signature-status.json
