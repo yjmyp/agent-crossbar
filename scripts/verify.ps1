@@ -5,6 +5,11 @@ $python = Join-Path $projectRoot ".venv\Scripts\python.exe"
 $ruff = Join-Path $projectRoot ".venv\Scripts\ruff.exe"
 $cargo = Join-Path $env:USERPROFILE ".cargo\bin\cargo.exe"
 
+if (-not $env:CARGO_TARGET_DIR) {
+    $env:CARGO_TARGET_DIR = Join-Path $env:SystemDrive "ac-target"
+    Write-Host "[verify] CARGO_TARGET_DIR=$env:CARGO_TARGET_DIR (short-path MSVC workaround)"
+}
+
 if (-not (Test-Path -LiteralPath $python)) {
     throw "[verify] Python environment is missing. Run 'uv sync' from $projectRoot first."
 }

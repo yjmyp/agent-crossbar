@@ -9,7 +9,10 @@ import type {
   ProviderCredentialSummary,
   ProviderProfile,
   RunRecord,
+  RunChain,
+  RunAttestation,
   RunComparison,
+  RunDiagnostics,
   SecurityPolicy,
   SecurityReview,
   RuntimeEvent,
@@ -340,6 +343,18 @@ export const fakeSecurityReview: SecurityReview = {
     verdict: "pass",
     summary: "行为预算全部满足",
   },
+  workers: {
+    enabled: true,
+    workers: [
+      { name: "security", findings: 1, elapsed_ms: 21.4, chars: 182 },
+      { name: "style", findings: 0, elapsed_ms: 6.2, chars: 0 },
+      { name: "performance", findings: 1, elapsed_ms: 8.7, chars: 96 },
+    ],
+    merged_duplicates: 1,
+    redundancy_ratio: 0.1136,
+    redundancy_target: 0.15,
+    within_target: true,
+  },
   egress: {
     used: false,
     entries: [],
@@ -436,6 +451,75 @@ export function fakeRuntimeEvent(
   };
 }
 
+export const fakeDiagnostics: RunDiagnostics = {
+  run_id: fakeRun.run_id,
+  event_count: 6,
+  model_turns: 2,
+  tool_calls: 3,
+  distinct_tools: ["calculator", "text_stats"],
+  duplicate_calls: 1,
+  oscillations: 1,
+  loops: 0,
+  longest_streak: 2,
+  failures: 1,
+  denials: 0,
+  warnings: 0,
+  first_failure_sequence: 3,
+  retry_gaps_ms: [120],
+  pathologies: ["duplicate_tool_calls", "tool_oscillation", "tool_failure"],
+  severity: "high",
+};
+
+export function fakeChain(): RunChain {
+  return {
+    run_id: fakeRun.run_id,
+    call_count: 2,
+    calls: [
+      {
+        call_id: "call_1",
+        name: "calculator",
+        arguments: '{"expression": "1+1"}',
+        status: "completed",
+        output_preview: "2",
+        error: null,
+        approval: null,
+        sequence: 2,
+      },
+      {
+        call_id: "call_2",
+        name: "text_stats",
+        arguments: '{"text": "hello"}',
+        status: "failed",
+        output_preview: "",
+        error: '"timeout"',
+        approval: "denied",
+        sequence: 5,
+      },
+    ],
+  };
+}
+
+export const fakeAttestation: RunAttestation = {
+  run_id: fakeRun.run_id,
+  algorithm: "sha256-chain",
+  event_count: 6,
+  root_digest: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  expected_root_digest: null,
+  matches_expected: null,
+  chain_valid: true,
+  verified: true,
+  errors: [],
+  entries: [
+    {
+      sequence: 1,
+      event_type: "run_started",
+      prev_hash: "0".repeat(64),
+      event_hash: "a".repeat(64),
+    },
+  ],
+  checked_at: "2026-11-15T10:00:00Z",
+};
+
 export function fakeBridge(overrides: Partial<Bridge> = {}): Bridge {
   return {
     health: async () => ({ status: "ok", version: "0.1.0", database: "ready" }),
@@ -487,6 +571,15 @@ export function fakeBridge(overrides: Partial<Bridge> = {}): Bridge {
     compareRuns: async () => fakeComparison,
     getRun: async () => fakeRun,
     getRunTree: async () => ({ run: fakeRun, children: [] }),
+    getRunDiagnostics: async () => fakeDiagnostics,
+    getRunChain: async () => fakeChain(),
+    getRunAttestation: async () => fakeAttestation,
+    getRunSecurity: async () => ({
+      run_id: fakeRun.run_id,
+      review_count: 0,
+      verdicts: [],
+      reviews: [],
+    }),
     cancelRun: async () => ({ ...fakeRun, status: "cancelled" }),
     getProviderCredential: async () => ({
       configured: false,

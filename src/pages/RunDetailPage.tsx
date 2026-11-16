@@ -15,9 +15,14 @@ import {
 } from "lucide-react";
 import type {
   Bridge,
+  RunChain,
+  RunDiagnostics,
+  RunAttestation,
   RunRecord,
+  RunSecurity,
   RunTreeNode,
   RuntimeEvent,
+  SecurityVerdict,
 } from "../lib/bridge";
 import { errorMessage } from "../lib/errors";
 import { mergeRuntimeEvents } from "../lib/events";
@@ -31,6 +36,7 @@ import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { runStatusTone } from "../components/ui/statusTone";
+import type { StatusTone } from "../components/ui/statusTone";
 
 const terminalStatuses = new Set(["completed", "failed", "cancelled", "interrupted"]);
 
@@ -50,12 +56,34 @@ export function RunDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<RunDiagnostics | null>(null);
+  const [chain, setChain] = useState<RunChain | null>(null);
+  const [attestation, setAttestation] = useState<RunAttestation | null>(null);
+  const [security, setSecurity] = useState<RunSecurity | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let current = true;
     const abortController = new AbortController();
     let reachedRun = false;
+
+    async function refreshAnalysis() {
+      try {
+        const [nextDiagnostics, nextChain, nextAttestation, nextSecurity] = await Promise.all([
+          bridge.getRunDiagnostics(runId),
+          bridge.getRunChain(runId),
+          bridge.getRunAttestation(runId),
+          bridge.getRunSecurity(runId),
+        ]);
+        if (!current) return;
+        setDiagnostics(nextDiagnostics);
+        setChain(nextChain);
+        setAttestation(nextAttestation);
+        setSecurity(nextSecurity);
+      } catch {
+        // 诊断视图是增强信息；接口不可用时不影响轨迹本身。
+      }
+    }
 
     async function subscribe() {
       try {
@@ -68,6 +96,7 @@ export function RunDetailPage({
         setRun(initialRun);
         setTree(initialTree);
         setLoading(false);
+        void refreshAnalysis();
 
         await bridge.streamRunEvents(
           runId,
@@ -85,6 +114,7 @@ export function RunDetailPage({
         if (current) {
           setRun(terminalRun);
           setTree(terminalTree);
+          void refreshAnalysis();
         }
       } catch (reason) {
         if (!current || abortController.signal.aborted) return;
@@ -110,6 +140,10 @@ export function RunDetailPage({
     setStreamError(null);
     setEvents([]);
     setTree(null);
+    setDiagnostics(null);
+    setChain(null);
+    setAttestation(null);
+    setSecurity(null);
     setReloadKey((value) => value + 1);
   }
 
@@ -248,6 +282,169 @@ export function RunDetailPage({
           value={String(events.length)}
         />
       </div>
+
+      {diagnostics ? (
+        <section className="panel diagnostics-panel" aria-labelledby="diagnostics-title">
+          <div className="panel__header">
+            <div>
+              <h2 id="diagnostics-title">运行诊断</h2>
+              <p>从运行时事件流还原的工具调用病理与严重度。</p>
+            </div>
+            <StatusBadge tone={diagnosticTone(diagnostics.severity)} dot>
+              {diagnosticLabel(diagnostics.severity)}
+            </StatusBadge>
+          </div>
+          <div className="diagnostics-grid">
+            <DiagnosticMetric label="事件" value={diagnostics.event_count} />
+            <DiagnosticMetric label="模型轮次" value={diagnostics.model_turns} />
+            <DiagnosticMetric label="工具调用" value={diagnostics.tool_calls} />
+            <DiagnosticMetric
+              label="重复调用"
+              value={diagnostics.duplicate_calls}
+              tone={diagnostics.duplicate_calls > 0 ? "warning" : undefined}
+            />
+            <DiagnosticMetric
+              label="震荡"
+              value={diagnostics.oscillations}
+              tone={diagnostics.oscillations > 0 ? "danger" : undefined}
+            />
+            <DiagnosticMetric
+              label="循环"
+              value={diagnostics.loops}
+              tone={diagnostics.loops > 0 ? "danger" : undefined}
+            />
+            <DiagnosticMetric
+              label="失败"
+              value={diagnostics.failures}
+              tone={diagnostics.failures > 0 ? "warning" : undefined}
+            />
+            <DiagnosticMetric
+              label="审批拒绝"
+              value={diagnostics.denials}
+              tone={diagnostics.denials > 0 ? "danger" : undefined}
+            />
+            <DiagnosticMetric
+              label="最长连续"
+              value={diagnostics.longest_streak}
+              tone={diagnostics.longest_streak > 1 ? "warning" : undefined}
+            />
+          </div>
+          {diagnostics.pathologies.length > 0 ? (
+            <div className="diagnostics-pathologies">
+              {diagnostics.pathologies.map((item) => (
+                <span key={item} className="diagnostics-chip">
+                  {pathologyLabel(item)}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="diagnostics-empty">
+              这次运行没有触发已知的工具调用病理。
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {chain && chain.calls.length > 0 ? (
+        <section className="panel chain-panel" aria-labelledby="chain-title">
+          <div className="panel__header">
+            <div>
+              <h2 id="chain-title">工具调用链</h2>
+              <p>按时间顺序还原每次工具调用、审批决定与失败原因。</p>
+            </div>
+            <StatusBadge tone="neutral">{chain.call_count} 次调用</StatusBadge>
+          </div>
+          <ol className="chain-list">
+            {chain.calls.map((call) => (
+              <li key={call.call_id} className="chain-row">
+                <span className="chain-row__index mono">{call.sequence}</span>
+                <span className="chain-row__name mono">{call.name}</span>
+                <span className="chain-row__meta">
+                  <StatusBadge tone={chainStatusTone(call.status)}>
+                    {callStatusLabel(call.status)}
+                  </StatusBadge>
+                  {call.approval ? (
+                    <small className="chain-row__approval">
+                      审批：{approvalLabel(call.approval)}
+                    </small>
+                  ) : null}
+                </span>
+                <small className="chain-row__output">
+                  {call.error ?? (call.output_preview || call.arguments)}
+                </small>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
+      {attestation ? (
+        <section className="panel attestation-panel" aria-labelledby="attestation-title">
+          <div className="panel__header">
+            <div>
+              <h2 id="attestation-title">证据链</h2>
+              <p>完整事件流按前序哈希串成 SHA-256 链，可把根摘要存到发布记录后复核。</p>
+            </div>
+            <StatusBadge tone={attestation.verified ? "positive" : "danger"} dot>
+              {attestation.verified ? "链完整" : "校验失败"}
+            </StatusBadge>
+          </div>
+          <div className="attestation-body">
+            <div className="attestation-stat">
+              <small>事件数</small>
+              <strong className="mono">{attestation.event_count}</strong>
+            </div>
+            <div className="attestation-stat">
+              <small>算法</small>
+              <strong className="mono">{attestation.algorithm}</strong>
+            </div>
+            <div className="attestation-digest">
+              <small>根摘要</small>
+              <code>{attestation.root_digest}</code>
+            </div>
+          </div>
+          {attestation.errors.length > 0 ? (
+            <div className="attestation-errors">
+              {attestation.errors.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          ) : (
+            <div className="diagnostics-empty">
+              事件序列连续，链内哈希一致。跨数据库篡改需与外部保存的根摘要比对。
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {security && security.review_count > 0 ? (
+        <section className="panel chain-panel" aria-labelledby="run-security-title">
+          <div className="panel__header">
+            <div>
+              <h2 id="run-security-title">安全评审</h2>
+              <p>与这次运行绑定提交的代码安全评审。</p>
+            </div>
+            <StatusBadge tone={securityTone(security.verdicts)}>
+              {security.review_count} 次评审
+            </StatusBadge>
+          </div>
+          <ol className="chain-list">
+            {security.reviews.map((review) => (
+              <li key={review.review_id} className="chain-row chain-row--security">
+                <span className="chain-row__index mono">
+                  {verdictLabel(review.verdict)}
+                </span>
+                <span className="chain-row__name mono">
+                  {review.review_id}
+                </span>
+                <small className="chain-row__output">
+                  {review.policy_name} · {new Date(review.created_at).toLocaleString("zh-CN")}
+                </small>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
 
       {streamError ? (
         <div className="inline-alert" role="alert">
@@ -477,6 +674,96 @@ function runFailureSummary(error: Record<string, unknown>): string {
   return localized === message
     ? `运行失败。诊断信息：${message}`
     : localized;
+}
+
+function DiagnosticMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone?: StatusTone;
+}) {
+  return (
+    <div className={`diagnostic-metric${tone ? ` diagnostic-metric--${tone}` : ""}`}>
+      <small>{label}</small>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function diagnosticTone(severity: string): StatusTone {
+  if (severity === "clean") return "positive";
+  if (severity === "medium") return "warning";
+  if (severity === "high" || severity === "critical") return "danger";
+  return "neutral";
+}
+
+function diagnosticLabel(severity: string): string {
+  const labels: Record<string, string> = {
+    clean: "未见病理",
+    medium: "需要关注",
+    high: "高风险",
+    critical: "严重",
+  };
+  return labels[severity] ?? severity;
+}
+
+function pathologyLabel(value: string): string {
+  const labels: Record<string, string> = {
+    duplicate_tool_calls: "重复工具调用",
+    tool_oscillation: "工具震荡",
+    loop: "循环执行",
+    approval_denied: "审批被拒",
+    tool_failure: "工具失败",
+    warning: "运行时告警",
+  };
+  return labels[value] ?? value;
+}
+
+function chainStatusTone(status: string): StatusTone {
+  if (status === "completed") return "positive";
+  if (status === "failed") return "danger";
+  if (status === "running") return "accent";
+  return "neutral";
+}
+
+function callStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    proposed: "已提出",
+    running: "执行中",
+    completed: "已完成",
+    failed: "失败",
+  };
+  return labels[status] ?? status;
+}
+
+function approvalLabel(value: string): string {
+  const labels: Record<string, string> = {
+    requested: "待审批",
+    approved: "通过",
+    allow: "通过",
+    denied: "拒绝",
+    rejected: "拒绝",
+  };
+  return labels[value] ?? value;
+}
+
+function verdictLabel(verdict: SecurityVerdict): string {
+  const labels: Record<SecurityVerdict, string> = {
+    block: "阻断",
+    fix: "需修复",
+    ship: "可交付",
+  };
+  return labels[verdict];
+}
+
+function securityTone(verdicts: SecurityVerdict[]): StatusTone {
+  if (verdicts.includes("block")) return "danger";
+  if (verdicts.includes("fix")) return "warning";
+  if (verdicts.length > 0) return "positive";
+  return "neutral";
 }
 
 function Fact({

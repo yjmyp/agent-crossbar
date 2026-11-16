@@ -550,7 +550,13 @@ def scan_generic_text(relative_path: str, text: str) -> list[Finding]:
         patterns.extend(
             [
                 ("CS-JS-001", re.compile(r"\beval\s*\(")),
-                ("CS-JS-002", re.compile(r"\b(?:exec|execSync)\s*\(")),
+                (
+                    "CS-JS-002",
+                    re.compile(
+                        r"(?:\b(?:child_process|childProcess|cp|process|shell)\s*\.\s*"
+                        r"(?:exec|execSync)\s*\()|(?<![.\w])(?:exec|execSync)\s*\("
+                    ),
+                ),
                 ("CS-JS-003", re.compile(r"dangerouslySetInnerHTML")),
                 ("CS-JS-004", re.compile(r"\.innerHTML\s*=")),
                 ("CS-JS-005", re.compile(r"\bnew\s+Function\s*\(")),
@@ -560,9 +566,34 @@ def scan_generic_text(relative_path: str, text: str) -> list[Finding]:
     for line_number, line in enumerate(text.splitlines(), start=1):
         for rule_id, pattern in patterns:
             match = pattern.search(line)
-            if match:
+            if match and (rule_id not in _JS_RULES or _is_js_code_position(line, match.start())):
                 findings.append(_emit(rule_id, relative_path, line_number, match.start() + 1, line))
     return findings
+
+
+_JS_RULES = {"CS-JS-001", "CS-JS-002", "CS-JS-003", "CS-JS-004", "CS-JS-005"}
+
+
+def _is_js_code_position(line: str, index: int) -> bool:
+    """Return True when index is outside a JavaScript string or line comment."""
+    quote: str | None = None
+    escaped = False
+    position = 0
+    while position < index:
+        character = line[position]
+        if quote is not None:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == quote:
+                quote = None
+        elif character in {'"', "'", "`"}:
+            quote = character
+        elif character == "/" and position + 1 < len(line) and line[position + 1] == "/":
+            return False
+        position += 1
+    return quote is None
 
 
 def _collect_tainted(tree: ast.AST) -> set[str]:

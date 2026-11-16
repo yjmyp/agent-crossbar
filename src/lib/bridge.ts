@@ -126,6 +126,79 @@ export type RunTreeNode = {
   children: RunTreeNode[];
 };
 
+export type RunDiagnostics = {
+  run_id: string;
+  event_count: number;
+  model_turns: number;
+  tool_calls: number;
+  distinct_tools: string[];
+  duplicate_calls: number;
+  oscillations: number;
+  loops: number;
+  longest_streak: number;
+  failures: number;
+  denials: number;
+  warnings: number;
+  first_failure_sequence: number | null;
+  retry_gaps_ms: number[];
+  pathologies: string[];
+  severity: "clean" | "medium" | "high" | "critical";
+};
+
+export type ToolCallChain = {
+  call_id: string;
+  name: string;
+  arguments: string;
+  status: string;
+  output_preview: string;
+  error: string | null;
+  approval: string | null;
+  sequence: number;
+};
+
+export type RunChain = {
+  run_id: string;
+  call_count: number;
+  calls: ToolCallChain[];
+};
+
+export type RunAttestationEntry = {
+  sequence: number;
+  event_type: string;
+  prev_hash: string;
+  event_hash: string;
+};
+
+export type RunAttestation = {
+  run_id: string;
+  algorithm: string;
+  event_count: number;
+  root_digest: string;
+  expected_root_digest: string | null;
+  matches_expected: boolean | null;
+  chain_valid: boolean;
+  verified: boolean;
+  errors: string[];
+  entries: RunAttestationEntry[];
+  checked_at: string;
+};
+
+export type RunSecurityReview = {
+  review_id: string;
+  created_at: string;
+  root: string;
+  base: string | null;
+  verdict: SecurityVerdict;
+  policy_name: string;
+};
+
+export type RunSecurity = {
+  run_id: string;
+  review_count: number;
+  verdicts: SecurityVerdict[];
+  reviews: RunSecurityReview[];
+};
+
 export type RuntimeEvent = {
   run_id: string;
   sequence: number;
@@ -458,6 +531,19 @@ export type SecurityReview = {
   findings: SecurityFinding[];
   run_id: string | null;
   behaviour: SecurityBehaviour;
+  workers: {
+    enabled: boolean;
+    workers?: {
+      name: string;
+      findings: number;
+      elapsed_ms: number;
+      chars: number;
+    }[];
+    merged_duplicates?: number;
+    redundancy_ratio?: number;
+    redundancy_target?: number;
+    within_target?: boolean;
+  };
   egress: {
     used: boolean;
     entries: Record<string, unknown>[];
@@ -470,6 +556,7 @@ export type SecurityReviewInput = {
   base?: string | null;
   staged?: boolean;
   run_id?: string | null;
+  workers?: boolean;
 };
 
 export type SecurityWaiver = {
@@ -683,6 +770,18 @@ export function createBridge(
     getRun: (runId: string) => request<RunRecord>(`/v1/runs/${encodeURIComponent(runId)}`),
     getRunTree: (runId: string) =>
       request<RunTreeNode>(`/v1/runs/${encodeURIComponent(runId)}/tree`),
+    getRunDiagnostics: (runId: string) =>
+      request<RunDiagnostics>(
+        `/v1/runs/${encodeURIComponent(runId)}/diagnostics`,
+      ),
+    getRunChain: (runId: string) =>
+      request<RunChain>(`/v1/runs/${encodeURIComponent(runId)}/chain`),
+    getRunAttestation: (runId: string) =>
+      request<RunAttestation>(
+        `/v1/runs/${encodeURIComponent(runId)}/attestation`,
+      ),
+    getRunSecurity: (runId: string) =>
+      request<RunSecurity>(`/v1/runs/${encodeURIComponent(runId)}/security`),
     cancelRun: (runId: string) =>
       request<RunRecord>(`/v1/runs/${encodeURIComponent(runId)}/cancel`, {
         method: "POST",
@@ -815,8 +914,13 @@ export function createBridge(
         method: "POST",
         body: JSON.stringify(input),
       }),
-    listSecurityReviews: (limit = 20) =>
-      request<SecurityReview[]>(`/v1/security/reviews?limit=${limit}`),
+    listSecurityReviews: (limit = 20, runId?: string | null) => {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (runId) params.set("run_id", runId);
+      return request<SecurityReview[]>(
+        `/v1/security/reviews?${params.toString()}`,
+      );
+    },
     getSecurityReview: (reviewId: string) =>
       request<SecurityReview>(
         `/v1/security/reviews/${encodeURIComponent(reviewId)}`,

@@ -109,6 +109,15 @@ class SecurityStore:
         ).fetchall()
         return [_review_from_row(row) for row in rows]
 
+    def list_reviews_for_run(
+        self, run_id: str, *, limit: int = 50
+    ) -> list[SecurityReviewRecord]:
+        rows = self._database.connection.execute(
+            'SELECT * FROM security_reviews WHERE run_id = ? ORDER BY created_at DESC LIMIT ?',
+            (run_id, max(1, min(limit, 200)),)
+        ).fetchall()
+        return [_review_from_row(row) for row in rows]
+
     def create_waiver(
         self,
         *,

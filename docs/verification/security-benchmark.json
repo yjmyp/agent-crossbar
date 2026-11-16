@@ -1,7 +1,66 @@
 {
   "schema": 1,
-  "generated_at": "2026-11-13T20:31:41.438209+00:00",
-  "engine_version": "0.1.0",
+  "generated_at": "2026-11-15T17:05:41.141786+00:00",
+  "engine_version": "0.2.0",
+  "policy": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\scripts\\security_benchmark\\policy.yaml",
+  "default_ignore_paths": [
+    "vendor/*",
+    "*/vendor/*",
+    "third_party/*",
+    "*/third_party/*",
+    "third-party/*",
+    "*/third-party/*",
+    "tutorial/*",
+    "*/tutorial/*",
+    "tutorials/*",
+    "*/tutorials/*",
+    "example/*",
+    "*/example/*",
+    "examples/*",
+    "*/examples/*",
+    "testdata/*",
+    "*/testdata/*",
+    "fixtures/*",
+    "*/fixtures/*",
+    "*.min.js",
+    "*.min.css",
+    "certs/*",
+    "*/certs/*",
+    "certificates/*",
+    "*/certificates/*",
+    "artifacts/cert/*",
+    "*/artifacts/cert/*",
+    ".build/*",
+    "*/.build/*",
+    ".bench-cache/*",
+    "*/.bench-cache/*",
+    ".dependency-reset-*/*",
+    "*/.dependency-reset-*/*",
+    "work/*",
+    "*/work/*",
+    "output/*",
+    "*/output/*",
+    "outputs/*",
+    "*/outputs/*",
+    "pytest-of-*/*",
+    "*/pytest-of-*/*",
+    "*.egg-info/*",
+    "*/*.egg-info/*",
+    ".codex/*",
+    "*/.codex/*",
+    ".claude/*",
+    "*/.claude/*",
+    ".codojo/*",
+    "*/.codojo/*",
+    ".playwright-cli/*",
+    "*/.playwright-cli/*",
+    ".vela/*",
+    "*/.vela/*",
+    "vela-eval-*/*",
+    "*/vela-eval-*/*",
+    "pip-*/*",
+    "*/pip-*/*"
+  ],
   "repositories": [
     {
       "id": "dsvw",
@@ -10,11 +69,62 @@
       "commit": "9ca3c9acf3defa0a6148d40e5f5cebeb5dcbb908",
       "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\dsvw",
       "scanned_files": 10,
-      "duration_ms": 452.292,
+      "scanned": {
+        "unfiltered": 10,
+        "default": 10,
+        "curated": 10
+      },
+      "duration_ms": 100.639,
       "raw": {
         "findings": 2,
         "true_positive_findings": 2,
         "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "unfiltered": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "default": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "curated": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
         "precision": 1.0,
         "recall": 0.5,
         "labeled_lines": 4,
@@ -29,6 +139,22 @@
         "findings": 2,
         "true_positive_findings": 2,
         "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 0.5,
+        "labeled_lines": 4,
+        "missing_lines": [
+          "dsvw.py:22",
+          "dsvw.py:29"
+        ],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "scoped_curated": {
+        "findings": 2,
+        "true_positive_findings": 2,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
         "precision": 1.0,
         "recall": 0.5,
         "labeled_lines": 4,
@@ -65,26 +191,29 @@
       "repo": "https://github.com/OWASP/NodeGoat.git",
       "commit": "c5cb68a7084e4ae7dcc60e6a98768720a81841e8",
       "root": "C:\\Users\\29947\\Documents\\Codex\\agent-crossbar\\.bench-cache\\nodegoat",
-      "scanned_files": 92,
-      "duration_ms": 459.509,
+      "scanned_files": 68,
+      "scanned": {
+        "unfiltered": 92,
+        "default": 68,
+        "curated": 68
+      },
+      "duration_ms": 325.316,
       "raw": {
-        "findings": 28,
+        "findings": 20,
         "true_positive_findings": 3,
-        "false_positive_findings": 25,
-        "precision": 0.1071,
+        "false_positive_findings": 17,
+        "suppressed_findings": 0,
+        "precision": 0.15,
         "recall": 1.0,
         "labeled_lines": 3,
         "missing_lines": [],
         "false_positive_files": [
           "Gruntfile.js",
           "README.md",
-          "app/assets/vendor/chart/raphael-min.js",
           "app/assets/vendor/html5shiv.js",
           "app/assets/vendor/jquery.min.js",
-          "app/routes/contributions.js",
           "app/views/tutorial/a1.html",
-          "artifacts/cert/server.key",
-          "test/e2e/support/commands.js"
+          "artifacts/cert/server.key"
         ],
         "false_positives": [
           {
@@ -106,26 +235,6 @@
             "file": "Gruntfile.js",
             "line": 165,
             "rule_id": "CS-JS-002"
-          },
-          {
-            "file": "app/assets/vendor/jquery.min.js",
-            "line": 4,
-            "rule_id": "CS-JS-002"
-          },
-          {
-            "file": "app/assets/vendor/jquery.min.js",
-            "line": 5,
-            "rule_id": "CS-JS-002"
-          },
-          {
-            "file": "app/assets/vendor/jquery.min.js",
-            "line": 6,
-            "rule_id": "CS-JS-002"
-          },
-          {
-            "file": "app/routes/contributions.js",
-            "line": 31,
-            "rule_id": "CS-JS-001"
           },
           {
             "file": "app/views/tutorial/a1.html",
@@ -164,7 +273,107 @@
           },
           {
             "file": "app/views/tutorial/a1.html",
-            "line": 156,
+            "line": 157,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 158,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 159,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/assets/vendor/html5shiv.js",
+            "line": 5,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/html5shiv.js",
+            "line": 6,
+            "rule_id": "CS-JS-004"
+          },
+          {
+            "file": "app/assets/vendor/jquery.min.js",
+            "line": 5,
+            "rule_id": "CS-JS-004"
+          }
+        ]
+      },
+      "unfiltered": {
+        "findings": 20,
+        "true_positive_findings": 3,
+        "false_positive_findings": 17,
+        "suppressed_findings": 0,
+        "precision": 0.15,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [
+          "Gruntfile.js",
+          "README.md",
+          "app/assets/vendor/html5shiv.js",
+          "app/assets/vendor/jquery.min.js",
+          "app/views/tutorial/a1.html",
+          "artifacts/cert/server.key"
+        ],
+        "false_positives": [
+          {
+            "file": "README.md",
+            "line": 61,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "README.md",
+            "line": 135,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "artifacts/cert/server.key",
+            "line": 1,
+            "rule_id": "CS-SECRET-004"
+          },
+          {
+            "file": "Gruntfile.js",
+            "line": 165,
+            "rule_id": "CS-JS-002"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 56,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 70,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 73,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 82,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 129,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 136,
+            "rule_id": "CS-JS-001"
+          },
+          {
+            "file": "app/views/tutorial/a1.html",
+            "line": 154,
             "rule_id": "CS-JS-001"
           },
           {
@@ -183,16 +392,6 @@
             "rule_id": "CS-JS-001"
           },
           {
-            "file": "test/e2e/support/commands.js",
-            "line": 30,
-            "rule_id": "CS-JS-002"
-          },
-          {
-            "file": "app/assets/vendor/chart/raphael-min.js",
-            "line": 10,
-            "rule_id": "CS-JS-004"
-          },
-          {
             "file": "app/assets/vendor/html5shiv.js",
             "line": 5,
             "rule_id": "CS-JS-004"
@@ -204,34 +403,77 @@
           },
           {
             "file": "app/assets/vendor/jquery.min.js",
-            "line": 4,
-            "rule_id": "CS-JS-004"
-          },
-          {
-            "file": "app/assets/vendor/jquery.min.js",
             "line": 5,
             "rule_id": "CS-JS-004"
           }
         ]
       },
-      "scoped": {
-        "findings": 4,
+      "default": {
+        "findings": 6,
         "true_positive_findings": 3,
-        "false_positive_findings": 1,
-        "precision": 0.75,
+        "false_positive_findings": 3,
+        "suppressed_findings": 0,
+        "precision": 0.5,
         "recall": 1.0,
         "labeled_lines": 3,
         "missing_lines": [],
         "false_positive_files": [
-          "app/routes/contributions.js"
+          "Gruntfile.js",
+          "README.md"
         ],
         "false_positives": [
           {
-            "file": "app/routes/contributions.js",
-            "line": 31,
-            "rule_id": "CS-JS-001"
+            "file": "README.md",
+            "line": 61,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "README.md",
+            "line": 135,
+            "rule_id": "CS-SECRET-008"
+          },
+          {
+            "file": "Gruntfile.js",
+            "line": 165,
+            "rule_id": "CS-JS-002"
           }
         ]
+      },
+      "curated": {
+        "findings": 3,
+        "true_positive_findings": 3,
+        "false_positive_findings": 0,
+        "suppressed_findings": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "scoped": {
+        "findings": 3,
+        "true_positive_findings": 3,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [],
+        "false_positives": []
+      },
+      "scoped_curated": {
+        "findings": 3,
+        "true_positive_findings": 3,
+        "false_positive_findings": 0,
+        "suppressed_findings": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "labeled_lines": 3,
+        "missing_lines": [],
+        "false_positive_files": [],
+        "false_positives": []
       },
       "labels": {
         "app/routes/contributions.js": [
@@ -253,17 +495,45 @@
     }
   ],
   "totals": {
+    "unfiltered": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 17,
+      "precision": 0.2273,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    },
+    "default": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 3,
+      "precision": 0.625,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    },
+    "curated": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 0,
+      "precision": 1.0,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    },
     "scoped": {
       "true_positive_findings": 5,
-      "false_positive_findings": 1,
-      "precision": 0.8333,
+      "false_positive_findings": 0,
+      "precision": 1.0,
+      "recall": 0.7143,
+      "labeled_lines": 7
+    },
+    "scoped_curated": {
+      "true_positive_findings": 5,
+      "false_positive_findings": 0,
+      "precision": 1.0,
       "recall": 0.7143,
       "labeled_lines": 7
     },
     "raw": {
       "true_positive_findings": 5,
-      "false_positive_findings": 25,
-      "precision": 0.1667,
+      "false_positive_findings": 17,
+      "precision": 0.2273,
       "recall": 0.7143,
       "labeled_lines": 7
     }

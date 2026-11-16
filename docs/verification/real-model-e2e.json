@@ -1,25 +1,28 @@
 {
-  "generated_at": "2026-11-13T19:11:16.187483+00:00",
+  "generated_at": "2026-11-15T14:55:06.148261+00:00",
   "provider": {
     "base_url": "https://api.deepseek.com",
-    "requested_model": "deepseek-chat",
-    "reported_model": "deepseek-flash",
+    "requested_model": "deepseek-v4-pro",
+    "reported_model": "deepseek-v4-pro",
     "probe_usage": {
-      "prompt_tokens": 8,
-      "completion_tokens": 1,
-      "total_tokens": 9,
+      "prompt_tokens": 87,
+      "completion_tokens": 8,
+      "total_tokens": 95,
       "prompt_tokens_details": {
         "cached_tokens": 0
       },
+      "completion_tokens_details": {
+        "reasoning_tokens": 8
+      },
       "prompt_cache_hit_tokens": 0,
-      "prompt_cache_miss_tokens": 8
+      "prompt_cache_miss_tokens": 87
     }
   },
   "run": {
-    "run_id": "run_38ef90a72c644f45a2baa949861ff7c2",
+    "run_id": "run_441ebc15f0dd43c0a770e605d23fa3f0",
     "status": "completed",
     "output": "ORBITAL-47 的心跳窗口是 17 分钟。",
-    "duration_ms": 3062.398,
+    "duration_ms": 3136.773,
     "event_count": 10
   },
   "trace": {
@@ -38,11 +41,11 @@
     "tool_names": [
       "knowledge_search"
     ],
-    "input_tokens": 1051,
-    "output_tokens": 63,
-    "total_tokens": 1114,
-    "retrieval_mode": "hybrid",
-    "degraded_reason": null,
+    "input_tokens": 1267,
+    "output_tokens": 123,
+    "total_tokens": 1390,
+    "retrieval_mode": "lexical",
+    "degraded_reason": "embedding_not_configured",
     "tool_events": [
       {
         "sequence": 4,
@@ -50,9 +53,9 @@
         "tool": "knowledge_search",
         "payload": {
           "arguments": {
-            "query": "ORBITAL-47 的心跳窗口是多少分钟？"
+            "query": "ORBITAL-47 的心跳窗口是多少分钟"
           },
-          "call_id": "call_00_1MyGysFu0pDM5PeE2PGZ5926",
+          "call_id": "call_00_aJiXldKwIyU9KA1pQXCZ7913",
           "name": "knowledge_search"
         }
       },
@@ -61,7 +64,7 @@
         "type": "tool_started",
         "tool": "knowledge_search",
         "payload": {
-          "call_id": "call_00_1MyGysFu0pDM5PeE2PGZ5926",
+          "call_id": "call_00_aJiXldKwIyU9KA1pQXCZ7913",
           "name": "knowledge_search"
         }
       },
@@ -70,8 +73,8 @@
         "type": "tool_completed",
         "tool": "knowledge_search",
         "payload": {
-          "call_id": "call_00_1MyGysFu0pDM5PeE2PGZ5926",
-          "content": "{\"degraded_reason\":null,\"mode\":\"hybrid\",\"ok\":true,\"query\":\"ORBITAL-47 的心跳窗口是多少分钟？\",\"results\":[{\"chunk_id\":\"chk_b70d60df44785aae3f21310f\",\"content\":\"PROJECT ORBITAL-47 的内部代号是 Cedar Lantern。它的心跳窗口为 17 分钟，回滚口令为 mango-31。该项目的值班负责人只接受书面变更记录。\",\"document_id\":\"doc_2767eb33f0793501e21e57cd\",\"excerpt\":\"PROJECT ORBITAL-47 的内部代号是 Cedar Lantern。它的心跳窗口为 17 分钟，回滚口令为 mango-31。该项目的值班负责人只接受书面变更记录。\",\"lexical_rank\":0,\"lexical_score\":0.500001,\"position\":0,\"rank\":0,\"retrieval_mode\":\"hybrid\",\"score\":1.0,\"source_name\":...",
+          "call_id": "call_00_aJiXldKwIyU9KA1pQXCZ7913",
+          "content": "{\"degraded_reason\":\"embedding_not_configured\",\"mode\":\"lexical\",\"ok\":true,\"query\":\"ORBITAL-47 的心跳窗口是多少分钟\",\"results\":[{\"chunk_id\":\"chk_b70d60df44785aae3f21310f\",\"content\":\"PROJECT ORBITAL-47 的内部代号是 Cedar Lantern。它的心跳窗口为 17 分钟，回滚口令为 mango-31。该项目的值班负责人只接受书面变更记录。\",\"document_id\":\"doc_2767eb33f0793501e21e57cd\",\"excerpt\":\"PROJECT ORBITAL-47 的内部代号是 Cedar Lantern。它的心跳窗口为 17 分钟，回滚口令为 mango-31。该项目的值班负责人只接受书面变更记录。\",\"lexical_rank\":0,\"lexical_score\":0.500001,\"position\":0,\"rank\":0,\"retrieval_mode\":\"lexical\",\"sc...",
           "name": "knowledge_search"
         }
       }

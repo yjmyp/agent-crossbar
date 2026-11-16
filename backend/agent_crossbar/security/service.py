@@ -6,7 +6,9 @@ from typing import Any
 
 from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType
 from agent_crossbar.security.engine.agent import SentinelAgent, SentinelError
+from agent_crossbar.security.engine.diff import changed_lines
 from agent_crossbar.security.engine.models import Severity
+from agent_crossbar.security.engine.orchestrator import MultiAgentReviewer
 from agent_crossbar.security.errors import SecurityReviewError
 from agent_crossbar.security.policy import (
     SecurityPolicy,
@@ -54,6 +56,7 @@ class SecurityReviewService:
         staged: bool = False,
         run_id: str | None = None,
         policy_path: str | None = None,
+        workers: bool = False,
     ) -> SecurityReviewRecord:
         target = Path(root).expanduser()
         if not target.exists() or not target.is_dir():
@@ -69,18 +72,44 @@ class SecurityReviewService:
             policy = self._policy
         engine_policy = _engine_policy(policy)
         changed_only = base is not None
+        worker_payload: dict[str, Any] = {"enabled": False}
+        egress_entries: list[dict[str, Any]] = []
         try:
-            result = SentinelAgent(
-                target,
-                policy=engine_policy,
-                changed_only=changed_only,
-                base=base or "HEAD",
-                staged=staged,
-            ).scan()
+            if workers:
+                diff = (
+                    changed_lines(target, base or "HEAD", staged=staged)
+                    if changed_only
+                    else None
+                )
+                orchestrated = MultiAgentReviewer(target, policy=engine_policy).run(diff)
+                findings = [finding.to_dict() for finding in orchestrated.findings]
+                worker_payload = orchestrated.payload()
+                stats = {
+                    "files_scanned": orchestrated.file_count,
+                    "files_skipped": 0,
+                    "bytes_scanned": orchestrated.byte_count,
+                    "duration_ms": round(
+                        sum(report.elapsed_ms for report in orchestrated.reports), 3
+                    ),
+                }
+            else:
+                result = SentinelAgent(
+                    target,
+                    policy=engine_policy,
+                    changed_only=changed_only,
+                    base=base or "HEAD",
+                    staged=staged,
+                ).scan()
+                findings = [finding.to_dict() for finding in result.findings]
+                egress_entries = result.egress
+                stats = {
+                    "files_scanned": result.stats.files_scanned if result.stats else 0,
+                    "files_skipped": result.stats.files_skipped if result.stats else 0,
+                    "bytes_scanned": result.stats.bytes_scanned if result.stats else 0,
+                    "duration_ms": result.stats.duration_ms if result.stats else 0.0,
+                }
         except SentinelError as error:
             raise SecurityReviewError(str(error)) from error
-
-        findings = [finding.to_dict() for finding in result.findings]
         localize_findings(findings, policy)
         citations = citation_payload(findings, policy)
 
@@ -120,12 +149,8 @@ class SecurityReviewService:
                 ],
                 "budgets": policy.budgets,
             },
-            "stats": {
-                "files_scanned": result.stats.files_scanned if result.stats else 0,
-                "files_skipped": result.stats.files_skipped if result.stats else 0,
-                "bytes_scanned": result.stats.bytes_scanned if result.stats else 0,
-                "duration_ms": result.stats.duration_ms if result.stats else 0.0,
-            },
+            "stats": stats,
+            "workers": worker_payload,
             "verdict": verdict,
             "headline": headline,
             "reasons": reasons,
@@ -134,11 +159,11 @@ class SecurityReviewService:
             "run_id": run_id,
             "behaviour": behaviour,
             "egress": {
-                "used": bool(result.egress),
-                "entries": result.egress,
+                "used": bool(egress_entries),
+                "entries": egress_entries,
                 "statement": (
                     "本次扫描使用了外部模型（仅脱敏片段）。"
-                    if result.egress
+                    if egress_entries
                     else "本次扫描全程本地执行；源码、片段与证据未离开本机。"
                 ),
             },
@@ -162,6 +187,13 @@ class SecurityReviewService:
 
     def list_reviews(self, *, limit: int = 50) -> list[SecurityReviewRecord]:
         return self._store.list_reviews(limit=limit)
+
+    def reviews_for_run(
+        self, run_id: str, *, limit: int = 50
+    ) -> list[SecurityReviewRecord]:
+        # A run without reviews is a normal state, not an error.
+        self._run_store.get(run_id)
+        return self._store.list_reviews_for_run(run_id, limit=limit)
 
     def list_waivers(self) -> list[dict[str, Any]]:
         now = datetime.now(timezone.utc)
@@ -297,12 +329,15 @@ def _match_waiver(
 def _counts(findings: list[dict[str, Any]]) -> dict[str, int]:
     counts = {severity: 0 for severity in _SEVERITY_LABEL}
     waived = 0
+    suppressed = 0
     blocking = 0
     for finding in findings:
         severity = str(finding.get("severity", "info"))
         counts[severity] = counts.get(severity, 0) + 1
         if finding.get("waived"):
             waived += 1
+        elif finding.get("suppressed"):
+            suppressed += 1
         elif finding.get("blocked") or severity in _BLOCKING_SEVERITIES:
             blocking += 1
     return {
@@ -310,6 +345,7 @@ def _counts(findings: list[dict[str, Any]]) -> dict[str, int]:
         "total": len(findings),
         "blocking": blocking,
         "waived": waived,
+        "suppressed": suppressed,
     }
 
 
@@ -324,17 +360,19 @@ def _verdict(
     blocking = counts["blocking"]
     if blocking:
         reasons.append(f"{blocking} 个阻断级问题未豁免，涉及密钥、命令执行或注入风险。")
-    advisory = counts["total"] - counts["blocking"] - counts["waived"]
+    advisory = counts["total"] - counts["blocking"] - counts["waived"] - counts["suppressed"]
     if advisory > 0:
         reasons.append(f"{advisory} 个非阻断问题建议在合并前修复。")
     if counts["waived"]:
         reasons.append(f"{counts['waived']} 个问题被有期豁免，责任人与到期时间已记录。")
+    if counts["suppressed"]:
+        reasons.append(f"{counts['suppressed']} 个问题被策略白名单抑制，owner 与到期时间已记录。")
 
     if behaviour["verdict"] == "fail" or blocking:
         return "block", "阻断交付：存在未豁免的高风险问题或行为预算超限。", reasons
     if advisory > 0:
         return "fix", "可以合并，但建议先修复非阻断问题。", reasons
-    if counts["waived"]:
+    if counts["waived"] or counts["suppressed"]:
         return "ship", "可以交付：剩余问题均已由责任人限时豁免。", reasons
     return "ship", "可以交付：未发现需要处理的问题。", reasons
 

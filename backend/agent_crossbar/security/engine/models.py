@@ -39,6 +39,9 @@ class Finding:
     confidence: str = "high"
     source: str = "deterministic"
     blocked: bool = False
+    suppressed: bool = False
+    suppressed_by: str | None = None
+    suppressed_until: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -56,6 +59,9 @@ class Finding:
             "confidence": self.confidence,
             "source": self.source,
             "blocked": self.blocked,
+            "suppressed": self.suppressed,
+            "suppressed_by": self.suppressed_by,
+            "suppressed_until": self.suppressed_until,
         }
 
 

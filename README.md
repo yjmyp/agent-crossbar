@@ -20,12 +20,17 @@ agent specifications are stored locally in SQLite WAL mode.
 The product and architecture specification is in
 [`docs/superpowers/specs/2026-11-02-agent-crossbar-design.md`](docs/superpowers/specs/2026-11-02-agent-crossbar-design.md).
 
+The component map, run data flow, security gate, and code map are in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ## 先看结论：这次改动能不能交付
 
 Agent Crossbar 的交付闸门把三件事合成一个可解释的结论：
 
 1. **本地确定性扫描**：31 条规则覆盖密钥、命令执行、动态代码执行、SQL/路径注入、
-   TLS 关闭、弱哈希、危险配置等；扫描全程不调用外部模型，源码与证据不出本机。
+   TLS 关闭、弱哈希、危险配置等；默认忽略 `vendor/`、教程、示例、压缩产物与
+   示例证书，规则白名单必须带 `owner` 与到期时间。扫描全程不调用外部模型，
+   源码与证据不出本机。
 2. **行为预算**：把一次真实 run 的模型轮次、工具调用、Token、时长和禁用工具
    与策略逐项对照，超限直接阻断。
 3. **责任豁免**：每条豁免必须有 `owner`、理由和到期时间；撤销后风险重新计入阻断。
@@ -66,12 +71,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trial.ps1
 
 | 口径 | 命中 | 误报 | 精确率 | 召回率 |
 | --- | --- | --- | --- | --- |
-| 限定应用代码 | 5 | 1 | 83.3% | 71.4% |
-| 整仓库不过滤 | 5 | 25 | 16.7% | 71.4% |
+| 整仓库不过滤 | 5 | 17 | 22.7% | 71.4% |
+| 默认忽略规则 | 5 | 3 | 62.5% | 71.4% |
+| 默认忽略 + 有期白名单 | 5 | 0 | 100.0% | 71.4% |
+| 限定应用代码 | 5 | 0 | 100.0% | 71.4% |
+| 限定应用代码 + 有期白名单 | 5 | 0 | 100.0% | 71.4% |
 
-整仓库会把 `jquery.min.js`、教程、示例证书和测试脚本算进来。两个数字都公开，
-因为只报好看的那个就是自欺。当前明确不覆盖：XSS、XXE、XPath 注入、NoSQL 注入、
-认证与访问控制。完整报告与复现命令见
+整仓库会把 `jquery.min.js`、教程、示例证书和测试脚本算进来。规则误报修复先把
+误报从 25 降到 17，默认忽略目录再降到 3，最后靠每条都带 owner 与到期时间的
+规则白名单降到 0；所有口径
+同时公开，因为只报好看的那个就是自欺。当前明确不覆盖：XSS、XXE、XPath 注入、
+NoSQL 注入、认证与访问控制。完整报告与复现命令见
 [`docs/verification/security-benchmark.md`](docs/verification/security-benchmark.md)。
 
 边界必须说清：这是一个**本地单操作员工作台**，不是多租户平台、调度器或
@@ -184,11 +194,19 @@ See
 [`docs/verification/real-model-e2e.md`](docs/verification/real-model-e2e.md)
 for an external-model run with a real `knowledge_search` call, provider token
 usage, normalized trace, and an API-key persistence check.
+The latest record used `deepseek-v4-pro`: 2 model turns, 1
+`knowledge_search` call, 1390 provider-reported tokens, `completed` in
+3137 ms, and the API key was absent from SQLite.
 
 See
 [`docs/verification/security-gate.md`](docs/verification/security-gate.md)
 for the security gate API, verdict semantics, waiver model, egress boundary,
 demo output, and the explicit list of what is still missing.
+`crossbar-security --secrets-only --include-ignored` performs a whole-repository
+secret sweep over paths normally excluded by the code gate; generated build and
+cache trees stay skipped unless `--include-generated` is passed explicitly.
+`--external-sarif` merges Semgrep, CodeQL, or any SARIF 2.1.0 producer into the
+same blocking, waiver, and exit-code policy.
 
 See
 [`docs/verification/rag-benchmark.md`](docs/verification/rag-benchmark.md)
@@ -244,6 +262,60 @@ explicit real-model `not run` record. Earlier desktop/installer evidence remains
 in
 [`docs/verification/vertical-slice-1.md`](docs/verification/vertical-slice-1.md)
 with its tested capability boundary and known limitations.
+
+## Run diagnostics and multi-agent review
+
+Every run can be reconstructed from its event stream:
+
+- `GET /v1/runs/{run_id}/diagnostics` returns duplicate calls, tool
+  oscillation, loops, the longest identical streak, failures, denied
+  approvals, retry gaps, a pathology list, and `clean | medium | high |
+  critical` severity. The rules are in
+  `backend/agent_crossbar/domain/diagnostics.py`.
+- `GET /v1/runs/{run_id}/chain` returns each tool call in order with its
+  arguments, status, approval decision, and output preview.
+- `GET /v1/runs/{run_id}/attestation` hashes the complete event timeline into
+  a SHA-256 predecessor chain. Pass `expected_root_digest` to compare against a
+  digest stored in a release record or CI artifact; rewriting the database can
+  then be detected instead of silently trusted.
+- `GET /v1/runs/{run_id}/trace-diff?right_run_id=...` reports the first
+  semantic divergence, common tool prefix, each side's tool suffix, and the
+  pathology delta. Storage metadata such as run id, timestamp, and sequence is
+  excluded from the comparison.
+- Evaluation assertions now include `max_loops`, `max_oscillations`,
+  `max_duplicate_calls`, `no_denials`, `max_tokens`, and `max_duration_ms`, in
+  addition to the final-output and tool-sequence assertions.
+- Baseline gates no longer stop at pass rate. They also block regressions in
+  total tokens, model turns, and average latency. The exact allowances are
+  recorded in the batch metrics as `gate_policy` and `gate_regressions`.
+- `max_turns_exceeded`, timeout, and provider failures preserve the last model
+  output and accumulated usage in the terminal event and run record instead of
+  discarding all partial work.
+- A security review can be bound to a run by passing `run_id` to
+  `POST /v1/security/reviews`; `GET /v1/runs/{run_id}/security` returns the
+  bound reviews and verdicts.
+- The desktop run-detail page renders the diagnostics, the call chain, and the
+  bound security reviews directly under the run facts.
+
+Multi-agent review uses Orchestrator-Workers: `security`, `style`, and
+`performance` workers each emit structured findings, which are merged and
+deduplicated on `(file, line, category)`. `workers.redundancy_ratio` is the
+share of finding text dropped during that merge, with a configured target of
+`<= 0.15`. In the measured run over this backend it was `0.0`, because the
+three rule sets currently do not overlap; the number is a measured value, not a
+guarantee.
+
+```json
+POST /v1/security/reviews
+{"root": ".", "run_id": "run_...", "workers": true}
+```
+
+See [`docs/verification/run-diagnostics.md`](docs/verification/run-diagnostics.md)
+for the exact commands, test counts, and measured numbers.
+
+See [`docs/verification/quality-upgrade.md`](docs/verification/quality-upgrade.md)
+for the reproducible attestation, tamper-detection, trace-diff, trajectory
+assertion, and multi-metric gate evidence.
 
 ## Evidence boundary
 

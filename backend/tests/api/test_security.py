@@ -1,10 +1,13 @@
+import asyncio
 import time
 from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import httpx
 import pytest
 from agent_crossbar.api.app import AppSettings, create_app
+from agent_crossbar.runtime.catalog import ProviderCatalog
 from fastapi.testclient import TestClient
 
 _AUTHORIZATION = {"Authorization": "Bearer integration-token"}
@@ -201,3 +204,138 @@ def test_review_links_a_real_run_and_checks_behaviour_budget(
         check["id"] == "max_total_tokens" and check["status"] == "pass"
         for check in payload["behaviour"]["checks"]
     )
+
+def test_reviews_are_linkable_from_a_run(tmp_path: Path) -> None:
+    provider_client = httpx.AsyncClient(
+        transport=httpx.MockTransport(_ok_response)
+    )
+    app = create_app(
+        AppSettings(
+            database_path=tmp_path / "crossbar.db",
+            launch_token="integration-token",
+        ),
+        provider_catalog=ProviderCatalog.from_environment({}, http_client=provider_client),
+    )
+    try:
+        with TestClient(app) as client:
+            spec = client.post(
+                "/v1/specs",
+                json={
+                    "name": "Runner",
+                    "version": "1.0.0",
+                    "description": "d",
+                    "instructions": "Answer.",
+                },
+                headers=_AUTHORIZATION,
+            ).json()
+            run = client.post(
+                "/v1/runs",
+                json={
+                    "spec_id": spec["agent_id"],
+                    "version": "1.0.0",
+                    "input": "hello",
+                },
+                headers=_AUTHORIZATION,
+            ).json()
+            deadline = time.monotonic() + 5
+            status = ""
+            while time.monotonic() < deadline:
+                status = client.get(
+                    f"/v1/runs/{run['run_id']}", headers=_AUTHORIZATION
+                ).json()["status"]
+                if status in {"completed", "failed", "cancelled", "interrupted"}:
+                    break
+                time.sleep(0.02)
+
+            repo = tmp_path / "repo2"
+            repo.mkdir()
+            (repo / "ok.py").write_text("x = 1\n", encoding="utf-8")
+
+            review = client.post(
+                "/v1/security/reviews",
+                json={"root": str(repo), "run_id": run["run_id"]},
+                headers=_AUTHORIZATION,
+            )
+            assert review.status_code == 201, review.text
+
+            linked = client.get(
+                f"/v1/runs/{run['run_id']}/security", headers=_AUTHORIZATION
+            )
+            assert linked.status_code == 200
+            body = linked.json()
+            assert body["run_id"] == run["run_id"]
+            assert body["review_count"] == 1
+            assert body["reviews"][0]["review_id"] == review.json()["review_id"]
+
+            filtered = client.get(
+                "/v1/security/reviews",
+                params={"run_id": run["run_id"]},
+                headers=_AUTHORIZATION,
+            )
+            assert filtered.status_code == 200
+            assert len(filtered.json()) == 1
+
+            missing = client.get(
+                "/v1/runs/run_missing/security", headers=_AUTHORIZATION
+            )
+            assert missing.status_code == 404
+    finally:
+        run_async(provider_client.aclose())
+
+
+def _ok_response(request: httpx.Request) -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "choices": [{"message": {"content": "OK"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 1},
+        },
+    )
+
+
+def run_async(awaitable):
+    return asyncio.run(awaitable)
+
+def test_multi_agent_review_runs_three_workers(tmp_path: Path) -> None:
+    repo = tmp_path / "multi"
+    repo.mkdir()
+    source = (
+        "import requests\n"
+        "\n"
+        "def fetch(rows):\n"
+        "    for row in rows:\n"
+        "        requests.get(row)\n"
+        "    return [1, 2, 3]\n"
+        "\n"
+        "def run(request):\n"
+        "    expr = request.args['expr']\n"
+        "    return eval(expr)\n"
+    )
+    (repo / "service.py").write_text(source, encoding="utf-8")
+
+    app = create_app(
+        AppSettings(
+            database_path=tmp_path / "crossbar.db",
+            launch_token="integration-token",
+        )
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/security/reviews",
+            json={"root": str(repo), "workers": True},
+            headers=_AUTHORIZATION,
+        )
+        assert response.status_code == 201, response.text
+        payload = response.json()
+
+    workers = payload["workers"]
+    assert workers["enabled"] is True
+    assert {item["name"] for item in workers["workers"]} == {
+        "security",
+        "style",
+        "performance",
+    }
+    assert 0.0 <= workers["redundancy_ratio"] <= 1.0
+    rule_ids = {item["rule_id"] for item in payload["findings"]}
+    assert any(rule.startswith("CS-PERF") for rule in rule_ids)
+    assert any(rule.startswith("CS-PY-001") for rule in rule_ids)

@@ -58,6 +58,8 @@ def redact_evidence(value: str, *, limit: int = 240) -> str:
 
 
 def looks_like_real_secret(value: str, *, entropy_threshold: float = 3.2) -> bool:
+    if _DESCRIPTIVE_PLACEHOLDER.fullmatch(value):
+        return False
     lowered = value.lower()
     placeholders = (
         "example",
@@ -73,7 +75,17 @@ def looks_like_real_secret(value: str, *, entropy_threshold: float = 3.2) -> boo
         "{{",
         "redacted",
         "sample",
+        "must-not-leak",
+        "demo",
+        "fake",
+        "mock",
+        "local-",
+        "not-a-real",
+        "notreal",
     )
     if any(marker in lowered for marker in placeholders):
         return False
     return len(value) >= 12 and shannon_entropy(value) >= entropy_threshold
+
+
+_DESCRIPTIVE_PLACEHOLDER = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")

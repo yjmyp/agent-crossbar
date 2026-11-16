@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from agent_crossbar.api.run_service import RunExecutor
+from agent_crossbar.domain.diagnostics import build_diagnostics
 from agent_crossbar.domain.evaluation import EvaluationCase, EvaluationStatus
 from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType
 from agent_crossbar.domain.spec import AgentSpec
@@ -230,7 +231,55 @@ class EvaluationExecutor:
         current_rate = metrics["pass_rate"]
         metrics["baseline_pass_rate"] = float(baseline_rate)
         metrics["pass_rate_delta"] = round(float(current_rate) - float(baseline_rate), 6)
-        return "regression" if float(current_rate) < float(baseline_rate) else "pass"
+        regressions: list[dict[str, Any]] = []
+        if float(current_rate) < float(baseline_rate):
+            regressions.append(
+                {
+                    "metric": "pass_rate",
+                    "baseline": float(baseline_rate),
+                    "current": float(current_rate),
+                    "limit": "must not decrease",
+                }
+            )
+
+        budgets = (
+            ("total_tokens", 1.2, 100.0, "max +20% or +100 tokens"),
+            ("total_model_turns", 1.15, 1.0, "max +15% or +1 turn"),
+            ("average_latency_ms", 1.25, 250.0, "max +25% or +250 ms"),
+        )
+        for metric, ratio, absolute_allowance, label in budgets:
+            baseline_value = baseline.metrics.get(metric)
+            current_value = metrics.get(metric)
+            if not isinstance(baseline_value, int | float) or not isinstance(
+                current_value, int | float
+            ):
+                continue
+            allowed = max(float(baseline_value) * ratio, float(baseline_value) + absolute_allowance)
+            metrics[f"baseline_{metric}"] = baseline_value
+            metrics[f"{metric}_delta"] = round(
+                float(current_value) - float(baseline_value),
+                6,
+            )
+            metrics[f"{metric}_budget"] = round(allowed, 6)
+            if float(current_value) > allowed:
+                regressions.append(
+                    {
+                        "metric": metric,
+                        "baseline": baseline_value,
+                        "current": current_value,
+                        "allowed": round(allowed, 6),
+                        "limit": label,
+                    }
+                )
+
+        metrics["gate_regressions"] = regressions
+        metrics["gate_policy"] = {
+            "pass_rate": "must not decrease",
+            "total_tokens": "max +20% or +100 tokens",
+            "total_model_turns": "max +15% or +1 turn",
+            "average_latency_ms": "max +25% or +250 ms",
+        }
+        return "regression" if regressions else "pass"
 
 
 def dataset_resource(record: EvaluationDatasetRecord) -> EvaluationDatasetResource:
@@ -325,6 +374,49 @@ def _assert_case(
         if steps <= limit:
             return True, None
         return False, f"执行 {steps} 步，超过上限 {limit}。"
+
+    diagnostics = None
+    trajectory_limits = {
+        "max_loops": ("loops", "循环"),
+        "max_oscillations": ("oscillations", "震荡"),
+        "max_duplicate_calls": ("duplicate_calls", "重复工具调用"),
+    }
+    if case.assertion_type in trajectory_limits:
+        diagnostics = build_diagnostics("evaluation", events)
+        attribute, label = trajectory_limits[case.assertion_type]
+        actual = int(getattr(diagnostics, attribute))
+        limit = int(case.expected)
+        if actual <= limit:
+            return True, None
+        return False, f"{label} {actual} 次，超过上限 {limit}。"
+
+    if case.assertion_type == "no_denials":
+        diagnostics = diagnostics or build_diagnostics("evaluation", events)
+        if diagnostics.denials == 0:
+            return True, None
+        return False, f"运行中出现 {diagnostics.denials} 次审批拒绝。"
+
+    if case.assertion_type == "max_tokens":
+        total_tokens = sum(
+            event.usage.total_tokens
+            for event in events
+            if event.usage is not None
+        )
+        limit = int(case.expected)
+        if total_tokens <= limit:
+            return True, None
+        return False, f"Token 用量 {total_tokens}，超过上限 {limit}。"
+
+    if case.assertion_type == "max_duration_ms":
+        duration_ms = (
+            max(0, round((events[-1].timestamp - events[0].timestamp).total_seconds() * 1_000))
+            if events
+            else 0
+        )
+        limit = int(case.expected)
+        if duration_ms <= limit:
+            return True, None
+        return False, f"轨迹耗时 {duration_ms} ms，超过上限 {limit} ms。"
 
     if case.assertion_type == "no_error":
         failures = [

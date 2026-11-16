@@ -1,0 +1,170 @@
+{
+  "generated_at": "2026-11-15T07:25:21.267838+00:00",
+  "attestation": {
+    "event_count": 10,
+    "root_digest": "sha256:bf88fb7c53ab31075298185bbcdcd8030e8103292141f6eff61fe03b68e71ac9",
+    "verified": true,
+    "tampered_matches_expected": false,
+    "tampered_root_digest": "sha256:84bd02f6249f5c00cb4c34a330887102f314eebcbf7269beb2cb709ec39917ae"
+  },
+  "trace_diff": {
+    "left": {
+      "run_id": "run_6aafcf718a654bdd90b8dca6aab720f9",
+      "status": "completed",
+      "event_count": 10,
+      "duration_ms": 62,
+      "tool_sequence": [
+        "read_file",
+        "write_file"
+      ],
+      "diagnostics": {
+        "run_id": "run_6aafcf718a654bdd90b8dca6aab720f9",
+        "event_count": 10,
+        "model_turns": 1,
+        "tool_calls": 2,
+        "distinct_tools": [
+          "read_file",
+          "write_file"
+        ],
+        "duplicate_calls": 0,
+        "oscillations": 0,
+        "loops": 0,
+        "longest_streak": 0,
+        "failures": 0,
+        "denials": 0,
+        "warnings": 0,
+        "first_failure_sequence": null,
+        "retry_gaps_ms": [],
+        "pathologies": [],
+        "severity": "clean"
+      }
+    },
+    "right": {
+      "run_id": "run_5ef663a5f87d43f38086685a08cad20b",
+      "status": "completed",
+      "event_count": 10,
+      "duration_ms": 62,
+      "tool_sequence": [
+        "read_file",
+        "list_dir"
+      ],
+      "diagnostics": {
+        "run_id": "run_5ef663a5f87d43f38086685a08cad20b",
+        "event_count": 10,
+        "model_turns": 1,
+        "tool_calls": 2,
+        "distinct_tools": [
+          "list_dir",
+          "read_file"
+        ],
+        "duplicate_calls": 0,
+        "oscillations": 0,
+        "loops": 0,
+        "longest_streak": 0,
+        "failures": 0,
+        "denials": 0,
+        "warnings": 0,
+        "first_failure_sequence": null,
+        "retry_gaps_ms": [],
+        "pathologies": [],
+        "severity": "clean"
+      }
+    },
+    "same_trajectory": false,
+    "common_prefix_events": 5,
+    "first_divergence": {
+      "event_index": 5,
+      "left_sequence": 6,
+      "right_sequence": 6,
+      "left_type": "tool_proposed",
+      "right_type": "tool_proposed",
+      "reason": "tool_proposed payload or step changed"
+    },
+    "tool_common_prefix": [
+      "read_file"
+    ],
+    "left_tool_suffix": [
+      "write_file"
+    ],
+    "right_tool_suffix": [
+      "list_dir"
+    ],
+    "pathologies_added": [],
+    "pathologies_removed": []
+  },
+  "trajectory_assertions": {
+    "max_loops_0": {
+      "passed": false,
+      "reason": "循环 1 次，超过上限 0。"
+    },
+    "max_loops_1": {
+      "passed": true,
+      "reason": null
+    },
+    "max_duplicate_calls_1": {
+      "passed": false,
+      "reason": "重复工具调用 2 次，超过上限 1。"
+    },
+    "no_denials_true": {
+      "passed": false,
+      "reason": "运行中出现 1 次审批拒绝。"
+    },
+    "max_tokens_14": {
+      "passed": false,
+      "reason": "Token 用量 15，超过上限 14。"
+    },
+    "max_duration_ms_399": {
+      "passed": false,
+      "reason": "轨迹耗时 400 ms，超过上限 399 ms。"
+    }
+  },
+  "gate": {
+    "gate_status": "regression",
+    "metrics": {
+      "pass_rate": 1.0,
+      "total_tokens": 2400,
+      "total_model_turns": 20,
+      "average_latency_ms": 2000,
+      "baseline_pass_rate": 1.0,
+      "pass_rate_delta": 0.0,
+      "baseline_total_tokens": 1000,
+      "total_tokens_delta": 1400.0,
+      "total_tokens_budget": 1200.0,
+      "baseline_total_model_turns": 10,
+      "total_model_turns_delta": 10.0,
+      "total_model_turns_budget": 11.5,
+      "baseline_average_latency_ms": 1000,
+      "average_latency_ms_delta": 1000.0,
+      "average_latency_ms_budget": 1250.0,
+      "gate_regressions": [
+        {
+          "metric": "total_tokens",
+          "baseline": 1000,
+          "current": 2400,
+          "allowed": 1200.0,
+          "limit": "max +20% or +100 tokens"
+        },
+        {
+          "metric": "total_model_turns",
+          "baseline": 10,
+          "current": 20,
+          "allowed": 11.5,
+          "limit": "max +15% or +1 turn"
+        },
+        {
+          "metric": "average_latency_ms",
+          "baseline": 1000,
+          "current": 2000,
+          "allowed": 1250.0,
+          "limit": "max +25% or +250 ms"
+        }
+      ],
+      "gate_policy": {
+        "pass_rate": "must not decrease",
+        "total_tokens": "max +20% or +100 tokens",
+        "total_model_turns": "max +15% or +1 turn",
+        "average_latency_ms": "max +25% or +250 ms"
+      }
+    }
+  }
+}

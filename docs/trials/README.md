@@ -30,7 +30,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/trial.ps1
 `%TEMP%\crossbar-trial-<时间戳>\report.md` 写一份带耗时和报错的报告。
 对方只需要把 `report.md` 发回来。
 
-实测：本机 Windows 11 + Python 3.10 全新 venv，63 秒 PASS。
+实测：本机 Windows 11 + Python 3.10 全新 venv，2026-11-16 复跑 149 秒 PASS。
+慢网络可用 `-PipIndexUrl` 指定镜像；脚本已内置 `--timeout 60 --retries 5`。
 
 ## 反馈表
 

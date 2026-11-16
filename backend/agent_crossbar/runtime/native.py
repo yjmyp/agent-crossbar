@@ -37,7 +37,10 @@ class _ProviderFailed(Exception):
 
 
 class _MaxTurnsExceeded(Exception):
-    pass
+    def __init__(self, text: str = "", usage: TokenUsage | None = None) -> None:
+        super().__init__("maximum model turns exceeded")
+        self.text = text
+        self.usage = usage or TokenUsage()
 
 
 class _EmptyModelResponse(Exception):
@@ -62,6 +65,8 @@ class NativeRuntime:
         sequence = EventSequence(run_id=request.run_id)
         cancel_event = request.cancel_event or asyncio.Event()
         deadline = asyncio.get_running_loop().time() + request.spec.execution.timeout_seconds
+        total_usage = TokenUsage()
+        partial_text = ""
 
         yield sequence.append(
             RuntimeEvent.create(
@@ -126,7 +131,6 @@ class NativeRuntime:
                 ConversationMessage(role="system", content=request.spec.instructions),
                 ConversationMessage(role="user", content=request.input),
             ]
-            total_usage = TokenUsage()
             reviewed = False
 
             for turn in range(1, request.spec.execution.max_turns + 1):
@@ -180,6 +184,7 @@ class NativeRuntime:
                         )
 
                 total_usage = self._add_usage(total_usage, response.usage)
+                partial_text = response.text
                 yield sequence.append(
                     RuntimeEvent.create(
                         run_id=request.run_id,
@@ -213,7 +218,7 @@ class NativeRuntime:
                         yield self._tool_proposed(sequence, request.run_id, turn, call)
 
                     if turn >= request.spec.execution.max_turns:
-                        raise _MaxTurnsExceeded
+                        raise _MaxTurnsExceeded(partial_text, total_usage)
 
                     for index, call in enumerate(response.tool_calls, start=1):
                         self._raise_if_cancelled(
@@ -460,6 +465,7 @@ class NativeRuntime:
                                 )
                             )
                     total_usage = self._add_usage(total_usage, review_response.usage)
+                    partial_text = review_response.text
                     yield sequence.append(
                         RuntimeEvent.create(
                             run_id=request.run_id,
@@ -498,7 +504,7 @@ class NativeRuntime:
                 )
                 return
 
-            raise _MaxTurnsExceeded
+            raise _MaxTurnsExceeded(partial_text, total_usage)
         except _RunCancelled as error:
             yield sequence.append(
                 RuntimeEvent.create(
@@ -516,8 +522,11 @@ class NativeRuntime:
                         "error": {
                             "code": "run_timeout",
                             "message": "The run exceeded its execution time limit.",
-                        }
+                        },
+                        "partial_output": partial_text,
+                        "partial_usage": total_usage.model_dump(mode="json"),
                     },
+                    usage=total_usage,
                 )
             )
         except _ProviderFailed as error:
@@ -529,11 +538,14 @@ class NativeRuntime:
                         "error": {
                             "code": "provider_error",
                             "message": error.message,
-                        }
+                        },
+                        "partial_output": partial_text,
+                        "partial_usage": total_usage.model_dump(mode="json"),
                     },
+                    usage=total_usage,
                 )
             )
-        except _MaxTurnsExceeded:
+        except _MaxTurnsExceeded as error:
             yield sequence.append(
                 RuntimeEvent.create(
                     run_id=request.run_id,
@@ -545,8 +557,11 @@ class NativeRuntime:
                                 "The agent requested more turns than its execution "
                                 "policy allows."
                             ),
-                        }
+                        },
+                        "partial_output": error.text,
+                        "partial_usage": error.usage.model_dump(mode="json"),
                     },
+                    usage=error.usage,
                 )
             )
         except _EmptyModelResponse:
@@ -558,8 +573,11 @@ class NativeRuntime:
                         "error": {
                             "code": "provider_error",
                             "message": "provider returned an empty final response",
-                        }
+                        },
+                        "partial_output": partial_text,
+                        "partial_usage": total_usage.model_dump(mode="json"),
                     },
+                    usage=total_usage,
                 )
             )
         except asyncio.CancelledError:

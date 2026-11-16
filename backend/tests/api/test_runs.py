@@ -525,3 +525,56 @@ def test_provider_configuration_cors_allows_put_and_delete(client: TestClient) -
         )
         assert response.status_code == 200
         assert method in response.headers["access-control-allow-methods"]
+
+def test_run_diagnostics_and_chain_expose_trace_level_facts(
+    client: TestClient,
+) -> None:
+    spec = create_spec(client)
+    run = start_run(client, spec)
+    wait_for_terminal(client, run["run_id"])
+
+    diagnostics = client.get(
+        f"/v1/runs/{run['run_id']}/diagnostics", headers=_AUTHORIZATION
+    )
+    assert diagnostics.status_code == 200
+    body = diagnostics.json()
+    assert body["run_id"] == run["run_id"]
+    assert body["severity"] in {"clean", "medium", "high", "critical"}
+    assert isinstance(body["pathologies"], list)
+
+    chain = client.get(f"/v1/runs/{run['run_id']}/chain", headers=_AUTHORIZATION)
+    assert chain.status_code == 200
+    assert chain.json()["run_id"] == run["run_id"]
+
+    attestation = client.get(
+        f"/v1/runs/{run['run_id']}/attestation", headers=_AUTHORIZATION
+    )
+    assert attestation.status_code == 200
+    chain_report = attestation.json()
+    assert chain_report["event_count"] == len(read_sse(client, run["run_id"]))
+    assert chain_report["root_digest"].startswith("sha256:")
+    assert chain_report["verified"] is True
+
+    anchored = client.get(
+        f"/v1/runs/{run['run_id']}/attestation",
+        params={"expected_root_digest": chain_report["root_digest"]},
+        headers=_AUTHORIZATION,
+    )
+    assert anchored.json()["matches_expected"] is True
+
+    second = start_run(client, spec)
+    wait_for_terminal(client, second["run_id"])
+    trace_diff = client.get(
+        f"/v1/runs/{run['run_id']}/trace-diff",
+        params={"right_run_id": second["run_id"]},
+        headers=_AUTHORIZATION,
+    )
+    assert trace_diff.status_code == 200
+    body = trace_diff.json()
+    assert body["left"]["run_id"] == run["run_id"]
+    assert body["right"]["run_id"] == second["run_id"]
+    assert body["same_trajectory"] is True
+
+    assert client.get(
+        "/v1/runs/run_missing/diagnostics", headers=_AUTHORIZATION
+    ).status_code == 404

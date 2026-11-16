@@ -1,0 +1,40 @@
+name: benchmark-false-positive-policy
+use_default_ignores: true
+ignore_paths: []
+allowlist:
+  - rule_id: CS-SECRET-008
+    path_pattern: README.md
+    line: 61
+    owner: benchmark-maintainer
+    reason: NodeGoat README documents a sample connection string, not a live credential.
+    expires_at: "2026-12-31"
+  - rule_id: CS-SECRET-008
+    path_pattern: README.md
+    line: 135
+    owner: benchmark-maintainer
+    reason: NodeGoat README documents configuration, not a live credential.
+    expires_at: "2026-12-31"
+  - rule_id: CS-SECRET-004
+    path_pattern: artifacts/cert/server.key
+    line: 1
+    owner: benchmark-maintainer
+    reason: NodeGoat ships a public localhost test certificate, not a production key.
+    expires_at: "2026-12-31"
+  - rule_id: CS-JS-002
+    path_pattern: Gruntfile.js
+    line: 165
+    owner: benchmark-maintainer
+    reason: Grunt build task invokes a local tool; the argument is repository-owned.
+    expires_at: "2026-12-31"
+  - rule_id: CS-JS-002
+    path_pattern: test/e2e/support/commands.js
+    line: 30
+    owner: benchmark-maintainer
+    reason: Test harness command is fixed and repository-owned.
+    expires_at: "2026-12-31"
+  - rule_id: CS-JS-001
+    path_pattern: app/routes/contributions.js
+    line: 31
+    owner: benchmark-maintainer
+    reason: Labeled vulnerable lines 32-34 are the target; line 31 is a nearby non-sink expression.
+    expires_at: "2026-12-31"

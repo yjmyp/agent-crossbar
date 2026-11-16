@@ -1,6 +1,6 @@
 # Agent Platform Verification
 
-**Verified:** 2026-11-14
+**Verified:** 2026-11-16
 
 **Release status:** engineering preview
 
@@ -61,10 +61,10 @@ Observed result: exit code `0`.
 | --- | --- |
 | TypeScript typecheck | passed |
 | ESLint | passed |
-| Vitest | 13 files, 68 tests passed |
+| Vitest | 12 files, 65 tests passed |
 | Vite production build | passed |
 | Ruff | passed |
-| Python/pytest | 203 tests passed |
+| Python/pytest | 243 tests passed |
 | Rust library tests | 25 passed |
 | Rust updater-verifier tests | 3 passed |
 | Rust `cargo check` | passed |

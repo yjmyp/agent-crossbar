@@ -53,6 +53,12 @@ class EvaluationCase(DomainModel):
         "tool_sequence",
         "max_tool_calls",
         "max_steps",
+        "max_loops",
+        "max_oscillations",
+        "max_duplicate_calls",
+        "no_denials",
+        "max_tokens",
+        "max_duration_ms",
         "no_error",
     ] = "exact"
     expected: str = Field(min_length=1, max_length=100_000)
@@ -97,7 +103,15 @@ class EvaluationCase(DomainModel):
         elif self.assertion_type in {"tool_sequence"}:
             if not _parse_tool_sequence(self.expected):
                 raise ValueError("expected must contain at least one tool name")
-        elif self.assertion_type in {"max_tool_calls", "max_steps"}:
+        elif self.assertion_type in {
+            "max_tool_calls",
+            "max_steps",
+            "max_loops",
+            "max_oscillations",
+            "max_duplicate_calls",
+            "max_tokens",
+            "max_duration_ms",
+        }:
             try:
                 limit = int(self.expected)
             except ValueError as error:
@@ -109,6 +123,9 @@ class EvaluationCase(DomainModel):
         elif self.assertion_type == "no_error":
             if self.expected.strip().lower() not in {"true", "1", "yes"}:
                 raise ValueError("expected must be true for no_error assertions")
+        elif self.assertion_type == "no_denials":
+            if self.expected.strip().lower() not in {"true", "1", "yes"}:
+                raise ValueError("expected must be true for no_denials assertions")
         elif (
             self.assertion_type in {"tool_called", "tool_not_called"}
             and not self.expected.strip()

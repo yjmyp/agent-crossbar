@@ -1,6 +1,6 @@
 # 干净 Python 环境安装验证
 
-日期：2026-11-14
+日期：2026-11-16
 
 ## 结论
 
@@ -26,6 +26,19 @@ work/clean-env-20261114/.venv/Scripts/crossbar-security.exe `
 - `site-packages/agent_crossbar/security/policy.yaml` 存在。
 - CLI 退出码为 1，因为演示仓库包含未豁免的 `CS-PY-003`。
 - SARIF 文件生成成功，大小 14,703 字节。
+
+## 2026-11-16 复跑
+
+用 `scripts/trial.ps1` 从一个全新 venv 完整复跑，结果为 **PASS，149 秒**：
+
+- 新建 venv 26,004 ms；依赖安装 108,200 ms。
+- 真实 console script `crossbar-security.exe --help` 通过。
+- 不安全样本按预期退出码 1，并生成 SARIF。
+- `scripts/demo.py` 通过，输出 `block` 结论和 1 个阻断 finding。
+- 报告：`docs/verification/local-trial-20261116.md`。
+
+第一次复跑曾因 `pypi.org` 15 秒读超时失败；`scripts/trial.ps1` 已改为
+`--timeout 60 --retries 5`，并支持 `-PipIndexUrl` 覆盖镜像源。
 
 ## 未完成
 

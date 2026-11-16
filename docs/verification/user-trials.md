@@ -8,12 +8,16 @@
 | --- | --- |
 | 三个干净 OS runner 独立跑通 | 已完成 |
 | 一条命令完成“安装 → 不安全样本 → demo → 生成报告” | 已完成：`scripts/trial.ps1` |
-| 本机 Python 3.10 全新 venv 试跑 | 已通过，63 秒 |
+| 本机 Python 3.10 全新 venv 试跑 | 已通过；2026-11-16 复跑 149 秒，报告 `local-trial-20261116.md` |
 | 邀请话术与协议 | 已完成：`docs/trials/README.md` |
 | GitHub issue 反馈表单 | 已完成：`.github/ISSUE_TEMPLATE/user-trial.yml` |
 | 3 个真人 | **0 / 3，未开始** |
 
 自动试跑不能替代真人。它能证明“机器能装上”，不能证明“人看得懂”。
+
+2026-11-16 的复跑还修了两处试跑路径问题：pip 默认 15 秒超时在慢网络下会失败，
+已改为 60 秒 + 5 次重试并支持 `-PipIndexUrl`；CLI 验证从 `python -m` 改为真实
+`crossbar-security.exe`，确保 console script 本身可用。
 
 ## 这一轮自动试跑发现的真实问题
 

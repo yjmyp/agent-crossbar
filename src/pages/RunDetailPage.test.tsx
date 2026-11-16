@@ -157,3 +157,74 @@ function readBlob(blob: Blob): Promise<string> {
     reader.readAsText(blob);
   });
 }
+
+it("renders runtime diagnostics and the tool-call chain", async () => {
+  render(
+    <RunDetailPage
+      bridge={fakeBridge()}
+      runId={fakeRun.run_id}
+      navigate={vi.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "运行诊断" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("高风险")).toBeInTheDocument();
+  expect(screen.getByText("重复工具调用")).toBeInTheDocument();
+  expect(screen.getByText("工具震荡")).toBeInTheDocument();
+  expect(screen.getByText("工具失败")).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("heading", { name: "工具调用链" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("2 次调用")).toBeInTheDocument();
+  expect(screen.getByText("calculator")).toBeInTheDocument();
+  expect(screen.getByText("text_stats")).toBeInTheDocument();
+  expect(screen.getByText("审批：拒绝")).toBeInTheDocument();
+
+  expect(
+    screen.getByRole("heading", { name: "证据链" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("链完整")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    ),
+  ).toBeInTheDocument();
+});
+
+it("lists security reviews bound to the run", async () => {
+  render(
+    <RunDetailPage
+      bridge={fakeBridge({
+        getRunSecurity: async () => ({
+          run_id: fakeRun.run_id,
+          review_count: 1,
+          verdicts: ["block"],
+          reviews: [
+            {
+              review_id: "rev_run",
+              created_at: "2026-11-14T12:00:00Z",
+              root: "C:\\work\\service",
+              base: "HEAD",
+              verdict: "block",
+              policy_name: "示例公司 · AI 代码交付规范 v1",
+            },
+          ],
+        }),
+      })}
+      runId={fakeRun.run_id}
+      navigate={vi.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "安全评审" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("阻断")).toBeInTheDocument();
+  expect(screen.getByText("rev_run")).toBeInTheDocument();
+  expect(
+    screen.getByText(/示例公司 · AI 代码交付规范 v1/),
+  ).toBeInTheDocument();
+});

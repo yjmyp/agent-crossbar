@@ -1,13 +1,16 @@
 from asyncio import run
 from collections.abc import Iterator
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from time import monotonic, sleep
+from types import SimpleNamespace
 
 import httpx
 import pytest
 from agent_crossbar.api.app import AppSettings, create_app
-from agent_crossbar.api.evaluation_service import _assert_case
+from agent_crossbar.api.evaluation_service import EvaluationExecutor, _assert_case
 from agent_crossbar.domain.evaluation import EvaluationCase
+from agent_crossbar.domain.events import RuntimeEvent, RuntimeEventType, TokenUsage
 from agent_crossbar.runtime.catalog import ProviderCatalog
 from fastapi.testclient import TestClient
 
@@ -362,3 +365,119 @@ def test_json_path_assertion_supports_nested_values() -> None:
 
     assert passed is True
     assert reason is None
+
+
+def _event(
+    sequence: int,
+    event_type: RuntimeEventType,
+    payload: dict[str, object],
+    *,
+    usage: TokenUsage | None = None,
+    timestamp: datetime | None = None,
+) -> RuntimeEvent:
+    event = RuntimeEvent.create(
+        run_id="eval-trace",
+        type=event_type,
+        payload=payload,
+        usage=usage,
+    ).model_copy(update={"sequence": sequence})
+    if timestamp is None:
+        return event
+    return event.model_copy(update={"timestamp": timestamp})
+
+
+def _case(assertion_type: str, expected: str) -> EvaluationCase:
+    return EvaluationCase(
+        case_id=f"case-{assertion_type}",
+        name=assertion_type,
+        input="ignored",
+        assertion_type=assertion_type,
+        expected=expected,
+    )
+
+
+def test_trajectory_quality_assertions_detect_loops_denials_and_budget() -> None:
+    base = datetime.now(timezone.utc)
+    events = [
+        _event(
+            index,
+            RuntimeEventType.TOOL_PROPOSED,
+            {"call_id": f"call-{index}", "name": "read_file", "arguments": {"path": "x"}},
+            timestamp=base + timedelta(milliseconds=index * 100),
+        )
+        for index in range(1, 4)
+    ]
+    events.append(
+        _event(
+            4,
+            RuntimeEventType.APPROVAL_RESOLVED,
+            {"decision": "denied", "name": "shell"},
+            timestamp=base + timedelta(milliseconds=400),
+        )
+    )
+    events.append(
+        _event(
+            5,
+            RuntimeEventType.MODEL_COMPLETED,
+            {"text": "partial"},
+            usage=TokenUsage(input_tokens=10, output_tokens=5),
+            timestamp=base + timedelta(milliseconds=500),
+        )
+    )
+
+    passed, reason = _assert_case(_case("max_loops", "0"), "done", events)
+    assert passed is False
+    assert "循环" in reason
+    assert _assert_case(_case("max_loops", "1"), "done", events)[0] is True
+
+    passed, reason = _assert_case(_case("max_duplicate_calls", "2"), "done", events)
+    assert passed is True
+    passed, reason = _assert_case(_case("max_duplicate_calls", "1"), "done", events)
+    assert passed is False
+    assert "重复工具调用" in reason
+
+    passed, reason = _assert_case(_case("no_denials", "true"), "done", events)
+    assert passed is False
+    assert "审批拒绝" in reason
+
+    passed, reason = _assert_case(_case("max_tokens", "15"), "done", events)
+    assert passed is True
+    passed, reason = _assert_case(_case("max_tokens", "14"), "done", events)
+    assert passed is False
+    assert "Token" in reason
+
+    passed, reason = _assert_case(_case("max_duration_ms", "400"), "done", events)
+    assert passed is True
+    passed, reason = _assert_case(_case("max_duration_ms", "399"), "done", events)
+    assert passed is False
+    assert "耗时" in reason
+
+
+def test_gate_blocks_quality_regressions_beyond_pass_rate() -> None:
+    batch = SimpleNamespace(
+        baseline_batch_id="baseline",
+        metrics={"total_tokens": 2_400, "total_model_turns": 20, "average_latency_ms": 2_000},
+    )
+    baseline = SimpleNamespace(
+        metrics={
+            "pass_rate": 1.0,
+            "total_tokens": 1_000,
+            "total_model_turns": 10,
+            "average_latency_ms": 1_000,
+        }
+    )
+    executor = EvaluationExecutor.__new__(EvaluationExecutor)
+    executor._evaluation_store = SimpleNamespace(get_batch=lambda _: baseline)
+    metrics = {
+        "pass_rate": 1.0,
+        "total_tokens": 2_400,
+        "total_model_turns": 20,
+        "average_latency_ms": 2_000,
+    }
+
+    assert executor._gate_status(batch, metrics) == "regression"
+    assert {item["metric"] for item in metrics["gate_regressions"]} == {
+        "total_tokens",
+        "total_model_turns",
+        "average_latency_ms",
+    }

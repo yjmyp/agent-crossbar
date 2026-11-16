@@ -32,11 +32,14 @@ from agent_crossbar.api.evaluation_service import (
     dataset_resource,
 )
 from agent_crossbar.api.run_service import RunExecutor
+from agent_crossbar.domain.attestation import build_attestation
+from agent_crossbar.domain.diagnostics import build_chain, build_diagnostics
 from agent_crossbar.domain.evaluation import EvaluationDataset
 from agent_crossbar.domain.events import RuntimeEvent
 from agent_crossbar.domain.knowledge import KnowledgeDocumentCreate
 from agent_crossbar.domain.mcp import MCPServerCreate, MCPServerUpdate
 from agent_crossbar.domain.spec import AgentSpec, CollaborationPolicy
+from agent_crossbar.domain.trace import build_trace_diff
 from agent_crossbar.domain.worker import WorkerCreate, WorkerUpdate
 from agent_crossbar.runtime.adapters import RuntimeAdapterRegistry
 from agent_crossbar.runtime.catalog import (
@@ -147,6 +150,7 @@ class CreateSecurityReviewRequest(BaseModel):
     staged: bool = False
     run_id: str | None = Field(default=None, min_length=1, max_length=100)
     policy_path: str | None = Field(default=None, max_length=4096)
+    workers: bool = False
 
 
 class CreateSecurityWaiverRequest(BaseModel):
@@ -819,6 +823,48 @@ def create_app(
     async def get_run(run_id: str) -> dict[str, object]:
         return _run_resource(run_store.get(run_id)).model_dump(mode="json")
 
+    @app.get("/v1/runs/{run_id}/diagnostics")
+    async def get_run_diagnostics(run_id: str) -> dict[str, object]:
+        run_store.get(run_id)
+        return build_diagnostics(run_id, run_store.list_events(run_id)).model_dump(
+            mode="json"
+        )
+
+    @app.get("/v1/runs/{run_id}/chain")
+    async def get_run_chain(run_id: str) -> dict[str, object]:
+        run_store.get(run_id)
+        chain = build_chain(run_id, run_store.list_events(run_id))
+        return {
+            "run_id": run_id,
+            "call_count": len(chain),
+            "calls": [item.model_dump(mode="json") for item in chain],
+        }
+
+    @app.get("/v1/runs/{run_id}/attestation")
+    async def get_run_attestation(
+        run_id: str,
+        expected_root_digest: str | None = None,
+    ) -> dict[str, object]:
+        run_store.get(run_id)
+        report = build_attestation(
+            run_id,
+            run_store.list_events(run_id),
+            expected_root_digest=expected_root_digest,
+        )
+        return report.model_dump(mode="json")
+
+    @app.get("/v1/runs/{run_id}/trace-diff")
+    async def get_run_trace_diff(
+        run_id: str,
+        right_run_id: str,
+    ) -> dict[str, object]:
+        diff = build_trace_diff(
+            left_run_id=run_id,
+            right_run_id=right_run_id,
+            run_store=run_store,
+        )
+        return diff.model_dump(mode="json")
+
     @app.get("/v1/runs/{run_id}/tree")
     async def get_run_tree(run_id: str) -> RunTreeNode:
         records = run_store.list_subtree(run_id)
@@ -884,12 +930,41 @@ def create_app(
             staged=payload.staged,
             run_id=payload.run_id,
             policy_path=payload.policy_path,
+            workers=payload.workers,
         )
         return review.payload
 
     @app.get("/v1/security/reviews")
-    async def list_security_reviews(limit: int = 50) -> list[dict[str, object]]:
-        return [record.payload for record in security_service.list_reviews(limit=limit)]
+    async def list_security_reviews(
+        limit: int = 50, run_id: str | None = None
+    ) -> list[dict[str, object]]:
+        records = (
+            security_service.reviews_for_run(run_id, limit=limit)
+            if run_id
+            else security_service.list_reviews(limit=limit)
+        )
+        return [record.payload for record in records]
+
+    @app.get("/v1/runs/{run_id}/security")
+    async def get_run_security(run_id: str) -> dict[str, object]:
+        run_store.get(run_id)
+        records = security_service.reviews_for_run(run_id)
+        return {
+            "run_id": run_id,
+            "review_count": len(records),
+            "verdicts": [record.verdict for record in records],
+            "reviews": [
+                {
+                    "review_id": record.review_id,
+                    "created_at": record.created_at.isoformat(),
+                    "root": record.root,
+                    "base": record.base,
+                    "verdict": record.verdict,
+                    "policy_name": record.policy_name,
+                }
+                for record in records
+            ],
+        }
 
     @app.get("/v1/security/reviews/{review_id}")
     async def get_security_review(review_id: str) -> dict[str, object]:

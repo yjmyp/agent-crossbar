@@ -42,7 +42,8 @@ GitHub：https://github.com/yjmyp
 - **责任豁免**：豁免必须有规则、文件范围、owner、理由、到期时间；过期或撤销不生效，
   报告记录 `waived_by` 与 `waived_until`，避免“永久忽略”。
 - **独立基准**：固定 DSVW（commit 9ca3c9a）与 OWASP NodeGoat（commit c5cb68a），
-  人工标注 7 个漏洞行；限定应用代码精确率 83.3%、召回率 71.4%，整仓库精确率 16.7%。
+  人工标注 7 个漏洞行；召回率 71.4%，整仓库精确率 16.7% -> 规则修复后 22.7% ->
+  默认忽略后 62.5% -> 带 owner/到期时间的规则白名单后 100.0%，曲线完整公开。
   明确不覆盖 XSS、XXE、XPath、NoSQL、认证与访问控制，不宣称完整 SAST。
 - **交付链路**：Markdown 报告可直接贴 PR；SARIF 上传 GitHub Code Scanning；
   `crossbar-security` 可 `pipx install`，CI 中阻断时退出码为 1。

@@ -1,0 +1,157 @@
+{
+  "generated_at": "2026-11-15T16:45:23.761630+00:00",
+  "run_id": "run_diag_evidence",
+  "event_count": 31,
+  "diagnostics": {
+    "run_id": "run_diag_evidence",
+    "event_count": 31,
+    "model_turns": 1,
+    "tool_calls": 9,
+    "distinct_tools": [
+      "calculator",
+      "text_stats"
+    ],
+    "duplicate_calls": 7,
+    "oscillations": 5,
+    "loops": 1,
+    "longest_streak": 2,
+    "failures": 1,
+    "denials": 1,
+    "warnings": 0,
+    "first_failure_sequence": 27,
+    "retry_gaps_ms": [],
+    "pathologies": [
+      "duplicate_tool_calls",
+      "tool_oscillation",
+      "loop",
+      "approval_denied",
+      "tool_failure"
+    ],
+    "severity": "critical"
+  },
+  "chain": {
+    "call_count": 9,
+    "calls": [
+      {
+        "call_id": "call_1",
+        "name": "calculator",
+        "arguments": "{\"expression\": \"1+1\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 3
+      },
+      {
+        "call_id": "call_2",
+        "name": "calculator",
+        "arguments": "{\"expression\": \"1+1\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 6
+      },
+      {
+        "call_id": "call_3",
+        "name": "text_stats",
+        "arguments": "{\"text\": \"alpha\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 9
+      },
+      {
+        "call_id": "call_4",
+        "name": "calculator",
+        "arguments": "{\"expression\": \"1+1\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 12
+      },
+      {
+        "call_id": "call_5",
+        "name": "text_stats",
+        "arguments": "{\"text\": \"alpha\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 15
+      },
+      {
+        "call_id": "call_6",
+        "name": "calculator",
+        "arguments": "{\"expression\": \"1+1\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 18
+      },
+      {
+        "call_id": "call_7",
+        "name": "text_stats",
+        "arguments": "{\"text\": \"alpha\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 21
+      },
+      {
+        "call_id": "call_8",
+        "name": "calculator",
+        "arguments": "{\"expression\": \"1+1\"}",
+        "status": "completed",
+        "output_preview": "ok",
+        "error": null,
+        "approval": null,
+        "sequence": 24
+      },
+      {
+        "call_id": "call_9",
+        "name": "text_stats",
+        "arguments": "{\"text\": \"alpha\"}",
+        "status": "failed",
+        "output_preview": "",
+        "error": "{\"message\": \"timeout\"}",
+        "approval": "denied",
+        "sequence": 27
+      }
+    ]
+  },
+  "multi_agent_review": {
+    "root": "backend/agent_crossbar",
+    "files": 59,
+    "bytes": 482525,
+    "workers": [
+      {
+        "name": "security",
+        "findings": 0,
+        "elapsed_ms": 388.377,
+        "chars": 0
+      },
+      {
+        "name": "style",
+        "findings": 2,
+        "elapsed_ms": 210.101,
+        "chars": 117
+      },
+      {
+        "name": "performance",
+        "findings": 4,
+        "elapsed_ms": 27.44,
+        "chars": 242
+      }
+    ],
+    "merged_duplicates": 0,
+    "redundancy_ratio": 0.0,
+    "redundancy_target": 0.15,
+    "within_target": true,
+    "verdict_source": "finding count only; no independent ground truth is claimed"
+  }
+}

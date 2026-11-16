@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import fnmatch
 import json
 import os
 import time
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -40,6 +41,22 @@ SKIP_DIRS = {
     ".turbo",
 }
 MAX_FILE_BYTES = 1_000_000
+SWEEP_SKIP_PATTERNS = (
+    ".build",
+    ".bench-cache",
+    ".dependency-reset-*",
+    "work",
+    "output",
+    "outputs",
+    "pytest-of-*",
+    "vela-eval-*",
+    ".codex",
+    ".claude",
+    ".codojo",
+    ".playwright-cli",
+    ".vela",
+    "pip-*",
+)
 
 
 class SentinelError(RuntimeError):
@@ -112,6 +129,9 @@ class SentinelAgent:
         provider: ReviewProvider | None = None,
         allow_external_llm: bool = False,
         max_llm_findings: int = 8,
+        include_ignored: bool = False,
+        secret_only: bool = False,
+        include_generated: bool = False,
     ) -> None:
         self.root = root.resolve()
         self.policy = policy or Policy()
@@ -121,6 +141,9 @@ class SentinelAgent:
         self.provider = provider
         self.allow_external_llm = allow_external_llm
         self.max_llm_findings = max_llm_findings
+        self.include_ignored = include_ignored
+        self.secret_only = secret_only
+        self.include_generated = include_generated
 
     def scan(self) -> ScanResult:
         started = time.perf_counter()
@@ -152,15 +175,26 @@ class SentinelAgent:
             ):
                 dirnames[:] = []
                 continue
+            ignore_policy_paths = not self.include_ignored
+            skip_generated = self.include_ignored and not self.include_generated
             dirnames[:] = sorted(
                 name
                 for name in dirnames
-                if name not in SKIP_DIRS and not name.startswith("pytest-of-")
+                if name not in SKIP_DIRS
+                and not (skip_generated and _is_generated_dir(name))
+                and (
+                    not ignore_policy_paths
+                    or not self.policy.is_ignored_dir(
+                        name if relative_dir in {"", "."} else f"{relative_dir}/{name}"
+                    )
+                )
             )
             for filename in sorted(filenames):
                 path = Path(dirpath) / filename
                 relative = path.relative_to(self.root).as_posix()
-                if self.policy.is_ignored(relative) or not is_text_file(path):
+                if (ignore_policy_paths and self.policy.is_ignored(relative)) or not is_text_file(
+                    path
+                ):
                     skipped += 1
                     continue
                 if diff is not None and relative not in diff:
@@ -180,14 +214,16 @@ class SentinelAgent:
         findings: list[Finding] = []
         for relative, text in files.items():
             findings.extend(scan_text(relative, text))
-            if relative.endswith(".py"):
-                findings.extend(scan_python(relative, text))
-            findings.extend(scan_generic_text(relative, text))
+            if not self.secret_only:
+                if relative.endswith(".py"):
+                    findings.extend(scan_python(relative, text))
+                findings.extend(scan_generic_text(relative, text))
 
         if diff is not None:
             findings = [item for item in findings if item.line in diff.get(item.file, set())]
 
-        findings = apply_policy(findings, self.policy, files)
+        policy = replace(self.policy, deny_patterns=[]) if self.secret_only else self.policy
+        findings = apply_policy(findings, policy, files)
         egress: list[dict[str, Any]] = []
         if self.allow_external_llm:
             if self.provider is None:
@@ -294,6 +330,10 @@ def _as_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _is_generated_dir(name: str) -> bool:
+    return any(fnmatch.fnmatch(name, pattern) for pattern in SWEEP_SKIP_PATTERNS)
 
 
 def _as_severity(value: Any) -> Severity:

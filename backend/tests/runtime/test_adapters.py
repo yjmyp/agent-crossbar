@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from agent_crossbar.domain.events import RuntimeEventType
+from agent_crossbar.domain.events import RuntimeEventType, TokenUsage
 from agent_crossbar.domain.spec import (
     AgentMember,
     AgentSpec,
@@ -328,6 +328,22 @@ class SlowProvider:
         return ModelResponse(text="too late")
 
 
+class PartialToolProvider:
+    async def complete(self, request: ProviderRequest) -> ModelResponse:
+        return ModelResponse(
+            text="I checked part of the task; continuing with another tool.",
+            tool_calls=(
+                ToolCall(
+                    id="call_partial_calculator",
+                    name="calculator",
+                    arguments={"expression": "2+2"},
+                ),
+            ),
+            usage=TokenUsage(input_tokens=7, output_tokens=4),
+            finish_reason="tool_calls",
+        )
+
+
 @pytest.mark.asyncio
 async def test_langgraph_runtime_enforces_timeout() -> None:
     spec = AgentSpec(
@@ -387,6 +403,42 @@ async def test_langgraph_runtime_enforces_max_turns() -> None:
 
     assert events[-1].type == RuntimeEventType.RUN_FAILED
     assert events[-1].payload["error"]["code"] == "max_turns_exceeded"
+
+
+@pytest.mark.asyncio
+async def test_native_runtime_preserves_partial_output_and_usage_on_max_turns() -> None:
+    spec = AgentSpec(
+        name="Partial result agent",
+        version="1.0.0",
+        runtime="native",
+        model_profile="test.partial",
+        instructions="Use the calculator.",
+        tools=(ToolReference(name="calculator"),),
+        execution=ExecutionPolicy(max_turns=1),
+    )
+    runtime = NativeRuntime(
+        provider=PartialToolProvider(),
+        tool_registry=build_default_tool_registry(),
+    )
+
+    events = [
+        event
+        async for event in runtime.execute(
+            RuntimeRequest(
+                run_id="run-native-partial",
+                spec=spec,
+                input="Calculate.",
+            )
+        )
+    ]
+
+    failed = events[-1]
+    assert failed.type == RuntimeEventType.RUN_FAILED
+    assert failed.payload["error"]["code"] == "max_turns_exceeded"
+    assert failed.payload["partial_output"].startswith("I checked part")
+    assert failed.payload["partial_usage"] == {"input_tokens": 7, "output_tokens": 4}
+    assert failed.usage is not None
+    assert failed.usage.total_tokens == 11
 
 
 class FakeDelegation:

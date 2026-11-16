@@ -108,11 +108,12 @@ def _markdown(report: dict[str, Any]) -> str:
             "",
             "```powershell",
             "$env:DEEPSEEK_API_KEY = '<your-key>'",
-            "python scripts/local-embedding-server.py --model BAAI/bge-small-zh-v1.5 --port 18888",
             "python scripts/real-model-e2e.py `",
-            "  --base-url https://api.deepseek.com --model deepseek-chat `",
-            "  --embedding-url http://127.0.0.1:18888/v1",
+            "  --base-url https://api.deepseek.com --model deepseek-v4-pro",
             "```",
+            "",
+            "For hybrid retrieval, start `scripts/local-embedding-server.py` first and "
+            "append `--embedding-url http://127.0.0.1:18888/v1`.",
             "",
             "The script refuses to run without an API key and never writes the key to "
             "the report, database, trace, or command line.",
@@ -125,7 +126,7 @@ def _markdown(report: dict[str, Any]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="https://api.deepseek.com")
-    parser.add_argument("--model", default="deepseek-chat")
+    parser.add_argument("--model", default="deepseek-v4-pro")
     parser.add_argument("--api-key-env", default="DEEPSEEK_API_KEY")
     parser.add_argument("--embedding-url", default="")
     parser.add_argument("--embedding-model", default="bge-small-zh-v1.5")

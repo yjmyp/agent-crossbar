@@ -1,0 +1,10 @@
+name: agent-crossbar-repository
+use_default_ignores: true
+ignore_paths: []
+allowlist:
+  - rule_id: CS-PY-003
+    path_pattern: scripts/trial-sample/deploy.py
+    line: 5
+    owner: demo-maintainer
+    reason: This file is the intentionally vulnerable trial sample used to demonstrate a blocked gate.
+    expires_at: "2026-12-31"

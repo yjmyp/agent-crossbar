@@ -137,6 +137,9 @@ class RunExecutor:
                                 if isinstance(raw_error, dict)
                                 else {"message": raw_error}
                             )
+                            partial_output = event.payload.get("partial_output")
+                            if isinstance(partial_output, str) and partial_output.strip():
+                                output = partial_output
         except asyncio.CancelledError:
             terminal_status = RunStatus.CANCELLED
             self._append_fallback_terminal(

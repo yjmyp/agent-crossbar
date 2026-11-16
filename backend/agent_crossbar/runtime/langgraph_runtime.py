@@ -161,7 +161,7 @@ class LangGraphRuntime:
                     },
                 )
             )
-        except _MaxTurnsExceeded:
+        except _MaxTurnsExceeded as error:
             yield sequence.append(
                 RuntimeEvent.create(
                     run_id=request.run_id,
@@ -173,8 +173,11 @@ class LangGraphRuntime:
                                 "The agent requested more turns than its execution "
                                 "policy allows."
                             ),
-                        }
+                        },
+                        "partial_output": error.text,
+                        "partial_usage": error.usage.model_dump(mode="json"),
                     },
+                    usage=error.usage,
                 )
             )
         except _EmptyModelResponse:
@@ -342,7 +345,7 @@ class LangGraphRuntime:
                 for call in response.tool_calls:
                     writer(self._tool_proposed(request.run_id, turn, call))
                 if turn >= request.spec.execution.max_turns:
-                    raise _MaxTurnsExceeded
+                    raise _MaxTurnsExceeded(response.text, total_usage)
                 return {
                     **state,
                     "messages": next_messages,

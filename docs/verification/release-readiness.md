@@ -1,4 +1,4 @@
-# 发布就绪状态（2026-11-14）
+# 发布就绪状态（2026-11-16）
 
 这份文件只记录事实，不把未完成写成完成。
 
@@ -10,8 +10,8 @@
 | 干净 Windows 环境回归 | wheel 与 pipx 在 GitHub 干净 Windows runner 通过；MSI 静默安装挂起（有超时日志）；真机 VM 未做 | `docs/verification/clean-windows-vm.md`、`docs/verification/ci-release-smoke.md` |
 | `pipx install` 可用性 | 已接入 CI | `release-smoke.yml` 的 `pipx-install` job |
 | 生产 Authenticode 证书 | 未完成；Sigstore 已完成 | `docs/verification/authenticode.md`：自动化与校验就绪，缺 CA 证书 |
-| 3 个真实外部用户 | 未完成（0 / 3） | 一键试跑与邀请包已就绪：`scripts/trial.ps1`、`docs/trials/`；本机 3.10 试跑 63 秒通过 |
-| Python 3.10 兼容 | 已修复并验证 | 试跑发现 `datetime.UTC`（3.11+）导致 `ImportError`，已改为 `timezone.utc`；211 个后端测试通过 |
+| 3 个真实外部用户 | 未完成（0 / 3） | 一键试跑与邀请包已就绪：`scripts/trial.ps1`、`docs/trials/`；2026-11-16 本机 3.10 全新 venv 149 秒 PASS，仍不能替代真人 |
+| Python 3.10 兼容 | 已修复并验证 | 试跑发现 `datetime.UTC`（3.11+）导致 `ImportError`，已改为 `timezone.utc`；2026-11-16 本机 3.10 隔离 venv 完成安装、CLI、SARIF、demo（149 秒）；开发环境 243 tests |
 | 第二个旗舰项目 | 已选型 MCP Guard | `docs/career/second-project-mcp-guard.md` |
 
 ## 干净环境回归的最低执行步骤（真机 VM）

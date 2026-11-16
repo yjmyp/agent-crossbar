@@ -28,6 +28,7 @@ _SARIF_LEVEL = {
 
 def render_terminal(result: ScanResult, *, limit: int = 200) -> str:
     counts = result.counts()
+    suppressed = sum(1 for item in result.findings if item.suppressed)
     stats = result.stats
     lines: list[str] = []
     lines.append("Agent Crossbar Security Gate - local scan for agent-generated code")
@@ -44,6 +45,8 @@ def render_terminal(result: ScanResult, *, limit: int = 200) -> str:
         else "findings: none"
     )
     lines.append(f"gate:   {result.gate_status.upper()}")
+    if suppressed:
+        lines.append(f"allow:  {suppressed} finding(s) suppressed by time-boxed allowlist")
     if result.egress:
         for entry in result.egress:
             lines.append(
@@ -60,7 +63,7 @@ def render_terminal(result: ScanResult, *, limit: int = 200) -> str:
         return "\n".join(lines)
 
     for finding in findings[:limit]:
-        flag = "BLOCK" if finding.blocked else "WARN "
+        flag = "ALLOW" if finding.suppressed else ("BLOCK" if finding.blocked else "WARN ")
         lines.append(
             f"[{flag}] {_SEVERITY_LABEL[finding.severity]:<8} {finding.rule_id:<14} "
             f"{finding.file}:{finding.line}:{finding.column}"
@@ -84,6 +87,7 @@ def to_dict(result: ScanResult) -> dict[str, Any]:
         "policy": result.policy_name,
         "gate_status": result.gate_status,
         "counts": result.counts(),
+        "suppressed": sum(1 for item in result.findings if item.suppressed),
         "stats": result.stats.__dict__ if result.stats else None,
         "egress": result.egress,
         "findings": [finding.to_dict() for finding in result.sorted_findings()],
@@ -110,6 +114,9 @@ def render_markdown(result: ScanResult) -> str:
         else "- Findings: none",
         "",
     ]
+    suppressed = sum(1 for item in findings if item.suppressed)
+    if suppressed:
+        lines.insert(6, f"- Suppressed: {suppressed} (time-boxed allowlist)")
     if result.egress:
         lines.append("- Egress: external LLM review was used on redacted excerpts.")
     else:
@@ -134,7 +141,12 @@ def render_markdown(result: ScanResult) -> str:
         lines.append(f"### {finding.rule_id} - {finding.title}")
         lines.append("")
         lines.append(f"- Location: `{finding.file}:{finding.line}:{finding.column}`")
-        flag = "blocking" if finding.blocked else "advisory"
+        if finding.suppressed:
+            flag = (
+                f"suppressed by {finding.suppressed_by} until {finding.suppressed_until}"
+            )
+        else:
+            flag = "blocking" if finding.blocked else "advisory"
         lines.append(f"- Severity: {finding.severity.value} ({flag})")
         lines.append(f"- Source: {finding.source}, confidence: {finding.confidence}")
         if finding.cwe:
@@ -163,30 +175,42 @@ def render_sarif(result: ScanResult) -> str:
     ]
     results = []
     for finding in result.sorted_findings():
-        results.append(
-            {
-                "ruleId": finding.rule_id,
-                "level": _SARIF_LEVEL[finding.severity],
-                "message": {"text": f"{finding.title} {finding.message}".strip()},
-                "locations": [
-                    {
-                        "physicalLocation": {
-                            "artifactLocation": {"uri": finding.file},
-                            "region": {
-                                "startLine": finding.line,
-                                "startColumn": max(1, finding.column),
-                            },
+        entry = {
+            "ruleId": finding.rule_id,
+            "level": _SARIF_LEVEL[finding.severity],
+            "message": {"text": f"{finding.title} {finding.message}".strip()},
+            "locations": [
+                {
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": finding.file},
+                        "region": {
+                            "startLine": finding.line,
+                            "startColumn": max(1, finding.column),
                         }
                     }
-                ],
-                "properties": {
-                    "severity": finding.severity.value,
-                    "blocked": finding.blocked,
-                    "source": finding.source,
-                    "confidence": finding.confidence,
-                },
-            }
-        )
+                }
+            ],
+            "properties": {
+                "severity": finding.severity.value,
+                "blocked": finding.blocked,
+                "source": finding.source,
+                "confidence": finding.confidence,
+                "suppressed": finding.suppressed,
+                "suppressedBy": finding.suppressed_by,
+                "suppressedUntil": finding.suppressed_until,
+            },
+        }
+        if finding.suppressed:
+            entry["suppressions"] = [
+                {
+                    "kind": "external",
+                    "justification": (
+                        f"Approved by {finding.suppressed_by or 'unknown owner'} "
+                        f"until {finding.suppressed_until or 'unknown expiry'}."
+                    ),
+                }
+            ]
+        results.append(entry)
     payload = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",

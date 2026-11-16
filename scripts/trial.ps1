@@ -8,7 +8,8 @@
 #>
 param(
     [string] $WheelPath,
-    [string] $ReportPath
+    [string] $ReportPath,
+    [string] $PipIndexUrl
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,7 @@ $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $trialRoot = Join-Path $env:TEMP "crossbar-trial-$stamp"
 $venv = Join-Path $trialRoot ".venv"
 $python = Join-Path $venv "Scripts\python.exe"
+$cli = Join-Path $venv "Scripts\crossbar-security.exe"
 $sample = Join-Path $trialRoot "sample"
 $log = New-Object System.Collections.Generic.List[string]
 $failures = New-Object System.Collections.Generic.List[string]
@@ -90,12 +92,15 @@ Invoke-Logged "python -m venv" {
     if ($LASTEXITCODE -ne 0) { throw "venv creation failed with exit code $LASTEXITCODE" }
 } | Out-Null
 Invoke-Logged "pip install wheel" {
-    & $python -m pip install --upgrade pip --quiet
-    & $python -m pip install $WheelPath
+    & $python -m pip install --upgrade pip --quiet --timeout 60 --retries 5
+    $pipArgs = @("-m", "pip", "install", "--timeout", "60", "--retries", "5")
+    if ($PipIndexUrl) { $pipArgs += @("--index-url", $PipIndexUrl) }
+    $pipArgs += $WheelPath
+    & $python @pipArgs
     if ($LASTEXITCODE -ne 0) { throw "pip install failed with exit code $LASTEXITCODE" }
 } | Out-Null
 Invoke-Logged "crossbar-security --help" {
-    & $python -m agent_crossbar.security.cli --help
+    & $cli --help
     if ($LASTEXITCODE -ne 0) { throw "CLI --help failed with exit code $LASTEXITCODE" }
 } | Out-Null
 
@@ -104,7 +109,7 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot "trial-sample\deploy.py") -Desti
 
 $gateExit = $null
 Invoke-Logged "crossbar-security on unsafe sample (expected exit 1)" {
-    & $python -m agent_crossbar.security.cli --root $sample --format sarif -o (Join-Path $trialRoot "security.sarif")
+    & $cli --root $sample --format sarif -o (Join-Path $trialRoot "security.sarif")
     $script:gateExit = $LASTEXITCODE
     if ($script:gateExit -eq 0) { throw "gate did not block the unsafe sample" }
     if (-not (Test-Path (Join-Path $trialRoot "security.sarif"))) { throw "SARIF output was not written" }
